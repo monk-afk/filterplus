@@ -37,24 +37,24 @@ Intel(R) Core(TM) i3-1005G1 CPU @ 1.20GHz
 > small_log.txt (1.6M)
 ```
 lines: 100000
-words: 351864
+words: 251864
 curse: 2
-clock: 1.055601
+clock: 1.030832
 ---------------
 lines: 100000
-words: 351864
+words: 251864
 curse: 2
-clock: 1.058072
+clock: 1.030534
 ```
 > large_logfile.txt (52M)
 ```
 lines: 3000000
-words: 11096248
+words: 8096248
 curse: 87
-clock: 35.671395
+clock: 34.668115
 ----------------
 lines: 3000000
-words: 11096248
+words: 8096248
 curse: 87
-clock: 35.798562
+clock: 33.885449
 ```
