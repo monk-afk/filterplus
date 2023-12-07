@@ -64,14 +64,15 @@ end
 
 
 local sweep = function(string)
-	string = lower(string):
+	return reference(
+		lower(string):
 			gsub("(%w+)", " %1 "): -- extra spaces
 			gsub("^%s*(.-)%s*$","%1"): -- padding
 			gsub("[^%sa-zA-Z]", ""): -- non-alpha
 			gsub("%s-(%w*)%s(%w)%s", "%1%2"): -- w o r d g a p s 
 			gsub("([%s%S])%1([%s%S]*)%2([%s%S]*)%3", "%1"): -- reppittittionns
 			gsub("([%s%S])%1", "%1") -- repititions second pass
-	return reference("m "..string) -- "m " is buffer for removing wordgap
+	)
 end
 
 
