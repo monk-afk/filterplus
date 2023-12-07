@@ -33,7 +33,7 @@ word count: 246021		|	word count: 246021
 black list: 12			|	black list: 12
 filter hit: 16			|	filter hit: 16
 potentials: 64			|	potentials: 0
-clock time: 1.327554	|	clock time: 1.044904
+clock time: 1.327554		|	clock time: 1.044904
 ```
 > large_logfile.txt (16M)
 ```
@@ -43,7 +43,7 @@ word count: 2384993		|	word count: 2384993
 black list: 12			|	black list: 12
 filter hit: 63			|	filter hit: 63
 potentials: 407			|	potentials: 0
-clock time: 13.267387	|	clock time: 9.918169
+clock time: 13.267387		|	clock time: 9.918169
 ```
 
 ##
