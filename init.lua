@@ -167,13 +167,13 @@ local filtered_words = simulate_chat()
 local function positive_matches()
 	print("Positive Matches:")
 	for word, count in pairs(filtered_words.pos) do
-		print("  "..word..": "..count.."\n")
+		print("  "..word..": "..count)
 	end
 end
 positive_matches()
 
 local function potentials_found()
-	print("Potentials Found:")
+	print("\nPotentials Found:")
 	for potential in pairs(filtered_words.pot) do
 		print(potential.." = {")
 		for count,message in pairs(filtered_words.pot[potential]) do
