@@ -1,11 +1,17 @@
   -- Chat Filter - blacklist.lua
-  --	0.01 - by: monk
-  -- List of filterable words
+  --	dev_0.02 - by: monk
+  --
 return { 
-"fuck",
-"shit",
-"ass",
-"bitch",
-"bastard",
-"cunit",
+	"lorem",
+	"itow",
+	"imotih",
+	"kooio",
+	"knom",
+	"siomtashi",
+	"okoi",
+	"mnok",
+	"knom",
+	"ekaulish",
+	"ipsum",
+	"monk",
 }
