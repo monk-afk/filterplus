@@ -1,4 +1,4 @@
-  -- Chat Filter - init.lua.lua
+  -- Chat Filter - init.lua
   --	dev_0.02 - by: monk
   -- 
 local ln, wc, ps, pn, bl, osc = 0, 0, 0, 0, 0, os.clock()  -- benchmark timer and counters
