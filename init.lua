@@ -5,7 +5,7 @@ local ln, wc, ps, pn, bl, osc = 0, 0, 0, 0, 0, os.clock()  -- benchmark timer an
 
 local filter = {}
 local blacklist = "blacklist.lua"
-local fakechat = "./fakechat_small.txt"  -- 100 thousand lines, 1671071B
+local fakechat = "fakechat_small.txt"  -- 100 thousand lines, 1671071B
 -- local fakechat = "./fakechat_large.txt"  -- 1 million lines, 16403433B
 
 local match = string.match
@@ -55,7 +55,8 @@ local find_potential = function(string)
 	local curse = curses[i]
 
 		if string.find(string, curse) then
-		potential = potential or {}
+			potential = potential or {}
+			
 			if not potential[curse] then
 				potential[curse] = {}
 			end
@@ -69,6 +70,7 @@ end
 local find_index = function(string)
 	for word in string:gmatch("%S+") do
 		wc = wc + 1
+
 		if #word >= 2 then
 			local tail = match(word, "%S$")
 
@@ -86,25 +88,21 @@ end
 
 
 local string_potential = function(message)
-	string = lower(message):
+	return find_potential(lower(message):
 		gsub("[^a-zA-Z]", ""):  -- all non-alphabetic
 		gsub("([%s%S])%1([%s%S]*)%2([%s%S]*)%3", "%1"):  -- duplicate chars
-		gsub("([%s%S])%1", "%1")  -- duplicates 2nd pass
-
-	return find_potential(string)
+		gsub("([%s%S])%1", "%1"))  -- duplicates 2nd pass
 end
 
 
 local string_positive = function(message)
-	string = lower(message):
+	return find_index(lower(message):
 		gsub("(%w+)", " %1 "): -- extra spaces
 		gsub("^%s*(.-)%s*$","%1"):  -- padding
 		gsub("[^%sa-zA-Z]", ""):  -- non-alphanumeric
 		gsub("%s-(%w*)%s(%w)%s", "%1%2"):  -- 'w o r d g a p s'
 		gsub("([%s%S])%1([%s%S]*)%2([%s%S]*)%3", "%1"):  -- dduuupplicaaates
-		gsub("([%s%S])%1", "%1")  -- duplicates 2nd pass
-
-	return find_index(string)
+		gsub("([%s%S])%1", "%1"))  -- duplicates 2nd pass
 end
 
 
