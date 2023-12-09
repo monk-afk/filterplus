@@ -1,12 +1,13 @@
-  -- Chat Filter - init.lua
-  --	dev_0.02 - by: monk
-  -- 
+  -- Chat Filter - init.lua.lua
+  --	dev_0.03 - by: monk
+  --[[ bug: if input has repeating blacklist words,
+  		some are dropped between string_positive and find_positive ]]
 local ln, wc, ps, pn, bl, osc = 0, 0, 0, 0, 0, os.clock()  -- benchmark timer and counters
 
 local filter = {}
 local blacklist = "blacklist.lua"
-local fakechat = "fakechat_small.txt"  -- 100 thousand lines, 1671071B
--- local fakechat = "./fakechat_large.txt"  -- 1 million lines, 16403433B
+-- local fakechat = "smalllogs.txt"  -- 100 thousand lines, 1671071B
+local fakechat = "testlogs.txt"  -- 1 million lines, 16403433B
 
 local match = string.match
 local gmatch = string.gmatch
@@ -32,21 +33,10 @@ bl = #curses
 	end
 	return filter
 end
+
 local curses = dofile(blacklist)
 index_blacklist(curses)
 
-
-local find_positive = function(head, word)
-	local positive = {}
-
-	for _,curse in pairs(head) do
-
-		if curse == word then
-			table.insert(positive, word)
-		end
-	end
-	return positive
-end
 
 local find_potential = function(string)
 	local potential
@@ -60,30 +50,38 @@ local find_potential = function(string)
 			if not potential[curse] then
 				potential[curse] = {}
 			end
-			
+
 			table.insert(potential[curse], line)
+			pn = pn + 1
 		end
 	end
 	return potential
 end
 
-local find_index = function(string)
+
+local find_positive = function(string)
+	local positive = {}
+
 	for word in string:gmatch("%S+") do
 		wc = wc + 1
-
-		if #word >= 2 then
+		if #word > 1 then
 			local tail = match(word, "%S$")
+			local head = match(word, "^%S")
 
-			if filter[tail] then
-				local head = match(word, "^%S")
-				head = filter[tail][head]
-			
-				if head then
-					return find_positive(head, word)
+			if filter[tail] and filter[tail][head] then
+				local head = filter[tail][head]
+
+				for _,curse in pairs(head) do
+					if curse == word then
+						table.insert(positive, word)
+
+						ps = ps + 1
+					end
 				end
 			end
 		end
 	end
+	return positive
 end
 
 
@@ -92,17 +90,19 @@ local string_potential = function(message)
 		gsub("[^a-zA-Z]", ""):  -- all non-alphabetic
 		gsub("([%s%S])%1([%s%S]*)%2([%s%S]*)%3", "%1"):  -- duplicate chars
 		gsub("([%s%S])%1", "%1"))  -- duplicates 2nd pass
+
 end
 
 
-local string_positive = function(message)
-	return find_index(lower(message):
+local string_positive = function(string)
+	return find_positive(lower(string):
 		gsub("(%w+)", " %1 "): -- extra spaces
 		gsub("^%s*(.-)%s*$","%1"):  -- padding
 		gsub("[^%sa-zA-Z]", ""):  -- non-alphanumeric
 		gsub("%s-(%w*)%s(%w)%s", "%1%2"):  -- 'w o r d g a p s'
 		gsub("([%s%S])%1([%s%S]*)%2([%s%S]*)%3", "%1"):  -- dduuupplicaaates
-		gsub("([%s%S])%1", "%1"))  -- duplicates 2nd pass
+		gsub("([%s%S])%1", "%1"))  -- 2nd pass for dupes
+
 end
 
 
@@ -118,10 +118,10 @@ local function simulate_chat()
 		return
 	end
 
-
 	local filtered_words = {
-		pos = {}, pot = {},
+		positive = {}, potential = {},
 	}
+
 
 	for line in io.lines(fakechat) do
 		ln = ln + 1
@@ -132,28 +132,26 @@ local function simulate_chat()
 			for i = 1, #positive do
 				local curse = positive[i]
 				
-				if not filtered_words.pos[curse] then
-					filtered_words.pos[curse] = 0
+				if not filtered_words.positive[curse] then
+					filtered_words.positive[curse] = {}
 				end
 
-				filtered_words.pos[curse] = filtered_words.pos[curse] + 1
+				table.insert(filtered_words.positive[curse], line)
 			end
-			ps = ps + #positive
 		end
 
 
-		local potential = string_potential(line)
+		-- local potential = string_potential(line)
 
 		if potential then
 			for curse in pairs(potential) do
 
-				if not filtered_words.pot[curse] then
-					filtered_words.pot[curse] = {}
+				if not filtered_words.potential[curse] then
+					filtered_words.potential[curse] = {}
 				end
 
-				table.insert(filtered_words.pot[curse], line)
+				table.insert(filtered_words.potential[curse], line)
 			end
-			pn = pn + 1
 		end
 	end
 	return filtered_words
@@ -162,25 +160,45 @@ end
 
 local filtered_words = simulate_chat()
 
+
+	-- formatted for terminal output > file
 local function positive_matches()
-	print("Positive Matches:")
-	for word, count in pairs(filtered_words.pos) do
-		print("  "..word..": "..count)
+	print("    positive = {")
+
+	for positive in pairs(filtered_words.positive) do
+		print("        [\""..positive.."\"] = {")
+
+		for count, message in pairs(filtered_words.positive[positive]) do
+			print("            \""..gsub(message, "\"", "").."\",")
+		end
+
+		print("        },")
 	end
+
+	print("    },")
 end
-positive_matches()
 
 local function potentials_found()
-	print("\nPotentials Found:")
-	for potential in pairs(filtered_words.pot) do
-		print(potential.." = {")
-		for count,message in pairs(filtered_words.pot[potential]) do
-			print("   "..count.." {"..message.."},")
+	print("    potential = {")
+
+	for potential in pairs(filtered_words.potential) do
+		print("        [\""..potential.."\"] = {")
+
+		for count, message in pairs(filtered_words.potential[potential]) do
+			print("            \""..gsub(message, "\"", "").."\",")
 		end
-		print("},\n")
+
+		print("        },")
 	end
+
+	print("    },")
 end
-potentials_found()
+
+print("return {")
+	positive_matches()
+	potentials_found()
+print("} \n")
+
 
 print(
 	"line count: "..ln.."\n"..
