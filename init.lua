@@ -1,13 +1,17 @@
-  -- Chat Filter - init.lua.lua
-  --	dev_0.03 - by: monk
-  --[[ bug: if input has repeating blacklist words,
-  		some are dropped between string_positive and find_positive ]]
-local ln, wc, ps, pn, bl, osc = 0, 0, 0, 0, 0, os.clock()  -- benchmark timer and counters
+  -- Chat Filter // monk @ SquareOne
+  -- init.lua - dev_0.04
+  -- Licensed by CC0
+local path = minetest.get_modpath(
+		minetest.get_current_modname())
+local blacklist_file = path .."/blacklist.lua"
+local whitelist_file = path .."/whitelist.lua"
 
-local filter = {}
-local blacklist = "blacklist.lua"
-local fakechat = "fakechat_small.txt"  -- 100 thousand lines, 1671071B
--- local fakechat = "fakechat_large.txt"  -- 1 million lines, 16403433B
+local filter = {
+	black = {},
+	white = {},
+}
+local black = filter.black
+local white = filter.white
 
 local match = string.match
 local gmatch = string.gmatch
@@ -15,196 +19,102 @@ local lower = string.lower
 local gsub = string.gsub
 
 
-local index_blacklist = function(curses)
-bl = #curses
+local index_filter = function()
+	
+	local curses = dofile(blacklist_file)
+	local cleans = dofile(whitelist_file)
+
 	for i, curse in pairs(curses) do
 		local head = match(curses[i], "^%S")
 		local tail = match(curses[i], "%S$")
 
-		if not filter[tail] then
-			filter[tail] = {}
+		if not black[tail] then
+			black[tail] = {}
 		end
 
-		if not filter[tail][head] then
-			filter[tail][head] = {}
+		if not black[tail][head] then
+			black[tail][head] = {}
 		end
 
-		table.insert(filter[tail][head], curse)
+		table.insert(black[tail][head], curse)
 	end
+
+	
+	for i, clean in pairs(cleans) do
+		local head = match(cleans[i], "^%S")
+		local tail = match(cleans[i], "%S$")
+
+		if not white[tail] then
+			white[tail] = {}
+		end
+
+		if not white[tail][head] then
+			white[tail][head] = {}
+		end
+
+		table.insert(white[tail][head], clean)
+	end
+
 	return filter
 end
 
-local curses = dofile(blacklist)
-index_blacklist(curses)
+index_filter()
 
 
-local find_potential = function(string)
-	local potential
-
-	for i = 1, #curses do
-	local curse = curses[i]
-
-		if string.find(string, curse) then
-			potential = potential or {}
-			
-			if not potential[curse] then
-				potential[curse] = {}
-			end
-
-			table.insert(potential[curse], line)
-			pn = pn + 1
-		end
-	end
-	return potential
+local sanitize = function(string)
+	return lower(string):
+		gsub("(%w+)", " %1 "): -- extra spaces
+		gsub("^%s*(.-)%s*$","%1"):  -- padding
+		gsub("[^%sa-z]", ""):  -- non-alphanumeric
+		gsub("([%S])%S+%1", "%1")  -- duplicated letters
 end
 
-
-local find_positive = function(string)
-	local positive = {}
+minetest.register_on_chat_message(function(name, message)
+	local string = sanitize(message)
+	print(message)
+	print(string)
 
 	for word in string:gmatch("%S+") do
-		wc = wc + 1
 		if #word > 1 then
 			local tail = match(word, "%S$")
 			local head = match(word, "^%S")
 
-			if filter[tail] and filter[tail][head] then
-				local head = filter[tail][head]
+			if white[tail] and white[tail][head] then
+				local whitelist = white[tail][head]
 
-				for _,curse in pairs(head) do
-					if curse == word then
-						table.insert(positive, word)
-
-						ps = ps + 1
+				for _,clean in pairs(whitehead) do
+					if clean == word then
+						message = message
 					end
 				end
+
+				minetest.chat_send_all(message)
+				return true
 			end
-		end
-	end
-	return positive
-end
 
+			if black[tail] and black[tail][head] then
+				local blackhead = black[tail][head]
 
-local string_potential = function(message)
-	return find_potential(lower(message):
-		gsub("[^a-zA-Z]", ""):  -- all non-alphabetic
-		gsub("([%s%S])%1([%s%S]*)%2([%s%S]*)%3", "%1"):  -- duplicate chars
-		gsub("([%s%S])%1", "%1"))  -- duplicates 2nd pass
+				for _,curse in pairs(blackhead) do
+					if curse == word then
 
-end
-
-
-local string_positive = function(string)
-	return find_positive(lower(string):
-		gsub("(%w+)", " %1 "): -- extra spaces
-		gsub("^%s*(.-)%s*$","%1"):  -- padding
-		gsub("[^%sa-zA-Z]", ""):  -- non-alphanumeric
-		gsub("%s-(%w*)%s(%w)%s", "%1%2"):  -- 'w o r d g a p s'
-		gsub("([%s%S])%1([%s%S]*)%2([%s%S]*)%3", "%1"):  -- dduuupplicaaates
-		gsub("([%s%S])%1", "%1"))  -- 2nd pass for dupes
-
-end
-
-
-local function simulate_chat()
-
-	local function file_exists(file)
-		local f = io.open(file,"rb")
-		if f then f:close() end
-		return f~=nil
-	end
-
-	if not file_exists(fakechat) then
-		return
-	end
-
-	local filtered_words = {
-		positive = {}, potential = {},
-	}
-
-
-	for line in io.lines(fakechat) do
-		ln = ln + 1
-
-		local positive = string_positive(line)
-
-		if positive then
-			for i = 1, #positive do
-				local curse = positive[i]
-				
-				if not filtered_words.positive[curse] then
-					filtered_words.positive[curse] = {}
+						message = gsub(message, word, string.rep("*", word:len()))	
+					end
 				end
 
-				table.insert(filtered_words.positive[curse], line)
-			end
-		end
-
-
-		-- local potential = string_potential(line)
-
-		if potential then
-			for curse in pairs(potential) do
-
-				if not filtered_words.potential[curse] then
-					filtered_words.potential[curse] = {}
-				end
-
-				table.insert(filtered_words.potential[curse], line)
+				minetest.chat_send_all(message)
+				return true
 			end
 		end
 	end
-	return filtered_words
-end
+end)
 
 
-local filtered_words = simulate_chat()
-
-
-	-- formatted for terminal output > file
-local function positive_matches()
-	print("    positive = {")
-
-	for positive in pairs(filtered_words.positive) do
-		print("        [\""..positive.."\"] = {")
-
-		for count, message in pairs(filtered_words.positive[positive]) do
-			print("            \""..gsub(message, "\"", "").."\",")
-		end
-
-		print("        },")
-	end
-
-	print("    },")
-end
-
-local function potentials_found()
-	print("    potential = {")
-
-	for potential in pairs(filtered_words.potential) do
-		print("        [\""..potential.."\"] = {")
-
-		for count, message in pairs(filtered_words.potential[potential]) do
-			print("            \""..gsub(message, "\"", "").."\",")
-		end
-
-		print("        },")
-	end
-
-	print("    },")
-end
-
-print("return {")
-	positive_matches()
-	potentials_found()
-print("} \n")
-
-
-print(
-	"line count: "..ln.."\n"..
-	"word count: "..wc.."\n"..
-	"black list: "..bl.."\n"..
-	"filter hit: "..ps.."\n"..
-	"potentials: "..pn.."\n"..
-	"clock time: "..tonumber(string.format("%.6f", os.clock() - osc)).."\n"
-)
+minetest.register_chatcommand("reindex", {
+    description = "Reindex Chat Filter Wordlists",
+    privs = {server = true},
+    func = function(name)
+        index_blacklist()
+        minetest.chat_send_player(name, "Reindexed Filter List!")
+    end
+})
