@@ -6,8 +6,8 @@ local ln, wc, ps, pn, bl, osc = 0, 0, 0, 0, 0, os.clock()  -- benchmark timer an
 
 local filter = {}
 local blacklist = "blacklist.lua"
--- local fakechat = "smalllogs.txt"  -- 100 thousand lines, 1671071B
-local fakechat = "testlogs.txt"  -- 1 million lines, 16403433B
+local fakechat = "fakechat_small.txt"  -- 100 thousand lines, 1671071B
+-- local fakechat = "fakechat_large.txt"  -- 1 million lines, 16403433B
 
 local match = string.match
 local gmatch = string.gmatch
