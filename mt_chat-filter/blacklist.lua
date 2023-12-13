@@ -1,9 +1,14 @@
-  -- Chat Filter // monk @ SquareOne
-  -- blacklist.lua - dev_0.04
-  -- Licensed by CC0
+  --[[  Chat Filter (Minetest)  ]]--
+  --[[   // monk @ SquareOne    ]]--
+  --[[ blacklist.lua - dev_0.05 ]]--
+  --[[     Licensed by CC0      ]]--
 return {
+		  -- A
 	"anal",
 	"anus",
+	"ass",
+	"asshole",
+		  -- B
 	"bastard",
 	"bastardo",
 	"beaner",
@@ -13,15 +18,19 @@ return {
 	"bitches",
 	"boner",
 	"busty",
+		  -- C
 	"clit",
 	"cock",
 	"creampie",
 	"creampied",
 	"cum",
 	"cunt",
+		  -- D
 	"dick",
 	"domination",
+			-- E
 	"escort",
+			-- F
 	"fag",
 	"fap",
 	"fck",
@@ -36,24 +45,34 @@ return {
 	"fucking",
 	"futanari",
 	"fvck",
+		  -- G
 	"genitals",
+		  -- H
 	"hentai",
 	"horny",
 	"humping",
+		  -- I
 	"incest",
+		  -- J
+		  -- K
 	"kinky",
+		  -- L
 	"lbgt",
 	"lesbi",
 	"lesbian",
 	"lgbt",
 	"lgbtq",
 	"lolita",
+		  -- M
 	"motherfucker",
+		  -- N
 	"nigger",
 	"nigga",
 	"nsfw",
 	"nude",
+		  -- O
 	"orgy",
+		  -- P
 	"panties",
 	"pedophile",
 	"penis",
@@ -63,10 +82,13 @@ return {
 	"porno",
 	"pubes",
 	"puta",
+		  -- Q
 	"quim",
+		  -- R
 	"rape",
 	"raping",
 	"rapist",
+		  -- S
 	"schlong",
 	"sex",
 	"sexo",
@@ -74,20 +96,29 @@ return {
 	"sexuality",
 	"sexy",
 	"shit",
+	"sht",
 	"shithead",
 	"shits",
+	"shitty",
 	"shota",
 	"sht",
 	"slut",
 	"slvt",
 	"spic",
 	"swastika",
+		  -- T
 	"tit",
 	"tits",
 	"twat",
+		  -- U
+		  -- V
 	"vagina",
 	"viagra",
+		  -- W
 	"wank",
 	"whore",
+		  -- X
+		  -- Y
 	"yaoi",
+		  -- Z
 }
