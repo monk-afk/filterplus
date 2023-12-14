@@ -1,6 +1,6 @@
   --[[  Chat Filter (Minetest)  ]]--
   --[[   // monk @ SquareOne    ]]--
-  --[[ blacklist.lua - dev_0.05 ]]--
+  --[[ blacklist.lua - dev_0.06 ]]--
   --[[     Licensed by CC0      ]]--
 return {
 		  -- A

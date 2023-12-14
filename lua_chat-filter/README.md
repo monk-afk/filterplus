@@ -21,4 +21,4 @@ e = { f = { "face", "frostbite" } }
 For importing, replace the 'fakechat' lines with compatible code.
 
 ##
-### Version **`dev_0.05`**
+### Version **`dev_0.06`**

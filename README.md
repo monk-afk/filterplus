@@ -15,4 +15,4 @@ Created by monk <sub>(monk.moe @ [SquareOne](https://discord.gg/pE4Tu3cf23))</su
 `lua_chat-filter` > This version is written in Lua without dependency, and can be imported into other applications.
 
 ##
-### Version **`dev_0.05`**
+### Version **`dev_0.06`**

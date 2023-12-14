@@ -1,12 +1,13 @@
   --[[  Chat Filter (Lua Port)  ]]--
   --[[   // monk @ SquareOne    ]]--
-  --[[ blacklist.lua - dev_0.05 ]]--
+  --[[ blacklist.lua - dev_0.06 ]]--
   --[[     Licensed by CC0      ]]--
 return {
 		  -- A
 	"anal",
 	"anus",
 	"ass",
+	"asshole",
 		  -- B
 	"bastard",
 	"bastardo",

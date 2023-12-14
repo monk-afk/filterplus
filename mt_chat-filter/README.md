@@ -20,7 +20,7 @@ Words filtered are replaced with asterisk(*) before sending to public chat.
 Reload the filter lists after adding new words manually to the table files, use the in-game command: `/reindex`
 
 ##
-### Version **`dev_0.05`**
+### Version **`dev_0.06`**
 - [ ] Add items to black list from in-game
 - [ ] Add /filter_off command to disable filter for self
 - [ ] > ? Automatic update if on black/white list changes
@@ -31,7 +31,7 @@ Reload the filter lists after adding new words manually to the table files, use 
 - [ ] ranks
 - [ ] faction tag + api support
 - [ ] player, server tag
-- [ ] mention  -- is better way to do it?
+- [ ] > mention  -- is better way to do it?
 - [ ] mute player
 - [ ] Figure out how to join gapped words
 - [ ] To do
