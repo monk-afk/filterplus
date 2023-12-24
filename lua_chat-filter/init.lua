@@ -1,15 +1,14 @@
   --[[  Chat Filter (Lua Port)  ]]--
   --[[   // monk @ SquareOne    ]]--
-  --[[   init.lua - dev_0.0x    ]]--
+  --[[   init.lua - dev_0.07    ]]--
   --[[     Licensed by CC0      ]]--
-
--- dump update because i'm pivoting away from trying to match evasion techniques
--- it's not worth the cpu time to check for all the evasion techniques.
 local match = string.match
 local gmatch = string.gmatch
 local lower = string.lower
 local gsub = string.gsub
 local rep = string.rep
+local sub = string.sub
+local len = string.len
 
 
 local filter = {
@@ -29,109 +28,52 @@ local blacklist_items = index_lists()
 
 local index_filter = function()
 	for i, listed_item in pairs(blacklist_items) do
-		local head = match(blacklist_items[i], "^%S")
-		local tail = match(blacklist_items[i], "%S$")
+		local index = #blacklist_items[i]
+		local head = sub(blacklist_items[i], 1, 1)
+		local tail = sub(blacklist_items[i], -1)
 
-		if not blacklist[tail] then
-			blacklist[tail] = {}
+		if not blacklist[index] then
+			blacklist[index] = {}
 		end
 
-		if not blacklist[tail][head] then
-			blacklist[tail][head] = {}
+		if not blacklist[index][tail] then
+			blacklist[index][tail] = {}
 		end
 
-		table.insert(blacklist[tail][head], listed_item)
+		if not blacklist[index][tail][head] then
+			blacklist[index][tail][head] = {}
+		end
+
+		table.insert(blacklist[index][tail][head], listed_item)
 	end
-
 	return filter
 end
 index_filter()
 
-
 local function try_blacklist(word)
-	local tail = match(word, "%S$")
-	local head = match(word, "^%S")
+	local index = #word
 
-	local blacklist_keys = blacklist[tail] and blacklist[tail][head]
+	if index <= 1 then
+		return word
+	end
+
+	local head = sub(word, 1, 1)
+	local tail = sub(word, -1)
+	local blacklist_keys = blacklist[index][tail] and blacklist[index][tail][head]
 
 	if blacklist_keys then
 		for n = 1, #blacklist_keys do
 			if word == blacklist_keys[n] then
-				word = string.rep("*", word:len())
-
-				return word
+				word = rep("*", #blacklist_keys[n])
 			end
 		end
 	end
 	return word
 end
 
-
 local function remove_links(string)
-	return gsub(string, "(h*t*t*p*s*:*/*/*%S+%./*%S*)", "(%1)")
+	return gsub(string, "h*t*t*p*s*:*/*/*%S+%.+%S+%.*%S%S%S?/*%S*%s?", "")
 end
-
-
--- local function remove_nonalpha(split_string)
--- 		-- return gsub(string, "[^%sa-zA-Z]", "")
-
--- 	for n = 1, #split_string do
-
--- 	end
-
--- 	return
--- end
-
-
-local function remove_repeats(word_table)
-	for n = 1, #word_table do
-		local no_repeats = {}
-		for c = 1, #word_table[n] do
-		if not no_repeats[n] then
-			no_repeats[n] = ""
-		end
-			local alpha = string.sub(word_table[n], c, c)
-			local beta = string.sub(word_table[n], c+1, c+1)
-			if alpha ~= beta then
-				no_repeats[n] = no_repeats[n] .. alpha
-			end
-		end
-		word_table[n] = no_repeats[n]
-	end
-
-	return word_table
-end
-
-
-local merge_gaps = function(word_table)
-	local words, i = {}, 1
-	for n = 1, #word_table do
-		if not words[n] then
-			words[n] = ""
-		end
-
-		if not word_table[i] then
-			break
-		end
-
-		local c = 0
-		if #word_table[i] == 1 then
-			for b = i,#word_table do
-				if #word_table[b] ~= 1 then
-					break
-				end
-				words[n] = words[n] .. word_table[b]
-				c = c + 1
-			end
-		else
-			words[n] = word_table[i]
-			c = c + 1
-		end
-		i = i + c
-	end
-	return words
-end
-
 
 local function make_word_table(string)
 	local word_table, n = {}, 1
@@ -163,7 +105,7 @@ local function simulate_chat()
 
 	for message in io.lines(fakechat) do  -- replace fakechat with real chat
 		print(os.date("%b-%d %H:%M:%S"))
-		local string = message --:lower()
+		local string = message
 
 		if string:len() > 28 then
 			string:lower()
@@ -173,13 +115,34 @@ local function simulate_chat()
 
 		local word_table = {}
 		word_table = make_word_table(string)
-		-- 
-		-- merge_gaps and remove_repeats don't work the best together
-		word_table = merge_gaps(word_table)
-		word_table = remove_repeats(word_table)
 
+		local a = 1
+		local alpha = {}
+		local omega = word_table
+		local lambda = {}
+		
+		for o = 1, #word_table do
+			if alpha[a] then
+				lambda[a] = alpha[a]
+			end
 
-		return table.concat(word_table, " ")
+			if alpha[a] and #omega[o] > 1 then
+				alpha[a] = nil 
+				a = a + 1
+			end
+
+			if #omega[o] > 1 then
+				lambda[a] = omega[o]
+				a = a + 1
+			end
+
+			if #omega[o] == 1 then
+				alpha[a] = (alpha[a] or "") .. omega[o]
+				lambda[a] = alpha[a]
+			end
+		end
+
+		return table.concat(lambda, " ")
 	end
 end
 

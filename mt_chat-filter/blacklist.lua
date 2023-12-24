@@ -1,6 +1,6 @@
-  --[[  Chat Filter (Minetest)  ]]--
+  --[[  Chat Filter (Lua Port)  ]]--
   --[[   // monk @ SquareOne    ]]--
-  --[[ blacklist.lua - dev_0.06 ]]--
+  --[[   blacklist.lua - 0.02   ]]--
   --[[     Licensed by CC0      ]]--
 return {
 		  -- A
@@ -28,9 +28,9 @@ return {
 		  -- D
 	"dick",
 	"domination",
-			-- E
+		  -- E
 	"escort",
-			-- F
+		  -- F
 	"fag",
 	"fap",
 	"fck",
@@ -38,7 +38,7 @@ return {
 	"fecal",
 	"fisting",
 	"fk",
-	"fuc",
+	"fuk",
 	"fuck",
 	"fucker",
 	"fuckin",
