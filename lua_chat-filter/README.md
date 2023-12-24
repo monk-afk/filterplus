@@ -9,7 +9,9 @@ Created by monk <sub>(monk.moe @ [SquareOne](https://discord.gg/pE4Tu3cf23))</su
 ##
 This portable module provides a functional starting point for a chat/message filter.
 
-Messages are filtered using blacklist words by associating suffix->prefix->word.  It removes extra whitespace, non-alphabet characters, duplicated letters, ~~and joins gapped words~~(nf) before the index search.
+Messages are filtered using blacklist words by associating suffix->prefix->word.  
+
+The filter removes URLs within strings, extra spaces, and joins gapped words.
 
 Table structre:
 ```lua
@@ -21,4 +23,6 @@ e = { f = { "face", "frostbite" } }
 For importing, replace the 'fakechat' lines with compatible code.
 
 ##
-### Version **`dev_0.06`**
+
+- init.lua `dev_0.07`
+- blacklist.lua `0.02`
