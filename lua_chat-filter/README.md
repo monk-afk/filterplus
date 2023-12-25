@@ -9,20 +9,21 @@ Created by monk <sub>(monk.moe @ [SquareOne](https://discord.gg/pE4Tu3cf23))</su
 ##
 This portable module provides a functional starting point for a chat/message filter.
 
-Messages are filtered using blacklist words by associating suffix->prefix->word.  
+Messages are filtered using blacklist associations via word length->suffix->prefix->word.  
 
 The filter removes URLs within strings, extra spaces, and joins gapped words.
 
 Table structre:
 ```lua
-k = { m = { "monk" },
-      l = { "link" } },
-e = { f = { "face", "frostbite" } }
+	[3] = { o = { "one" } },
+	[4] = { m = { "mono", "monk" },
+			l = { "link" } },
+	[6] = { s = { "square" } },
 ```
 
 For importing, replace the 'fakechat' lines with compatible code.
 
 ##
 
-- init.lua `dev_0.07`
+- init.lua `dev_0.08`
 - blacklist.lua `0.02`
