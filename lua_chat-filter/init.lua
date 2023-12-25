@@ -26,7 +26,6 @@ local index_lists = function()
 end
 
 local blacklist_items = index_lists()
-
 local index_filter = function()
 	for i, listed_item in pairs(blacklist_items) do
 		local index = #blacklist_items[i]
@@ -145,6 +144,14 @@ local function simulate_chat()
 				lambda[a] = try_blacklist(alpha[a])
 			end
 		end
+
+		local mentions = {}
+		for word = 1,#lambda do
+			gsub(lambda[word], "^@([a-zA-Z0-9_-]+)", function(name)
+				table.insert(mentions, name)
+			end)
+		end
+		print(table.concat(mentions, ", "))
 		return table.concat(lambda, " ")
 	end
 end
