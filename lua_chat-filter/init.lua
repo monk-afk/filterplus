@@ -1,6 +1,6 @@
   --[[  Chat Filter (Lua Port)  ]]--
   --[[   // monk @ SquareOne    ]]--
-  --[[   init.lua - dev_0.07    ]]--
+  --[[   init.lua - dev_0.08    ]]--
   --[[     Licensed by CC0      ]]--
 local match = string.match
 local gmatch = string.gmatch
@@ -8,7 +8,6 @@ local lower = string.lower
 local gsub = string.gsub
 local rep = string.rep
 local sub = string.sub
-local len = string.len
 
 
 local filter = {
@@ -107,7 +106,7 @@ local function simulate_chat()
 		print(os.date("%b-%d %H:%M:%S"))
 		local string = message
 
-		if string:len() > 28 then
+		if #string > 28 then
 			string:lower()
 		end
 
@@ -122,17 +121,13 @@ local function simulate_chat()
 		local lambda = {}
 		
 		for o = 1, #word_table do
-			if alpha[a] then
-				lambda[a] = alpha[a]
-			end
-
 			if alpha[a] and #omega[o] > 1 then
 				alpha[a] = nil 
 				a = a + 1
 			end
 
 			if #omega[o] > 1 then
-				lambda[a] = omega[o]
+				lambda[a] = try_blacklist(omega[o])
 				a = a + 1
 			end
 
@@ -140,8 +135,11 @@ local function simulate_chat()
 				alpha[a] = (alpha[a] or "") .. omega[o]
 				lambda[a] = alpha[a]
 			end
-		end
 
+			if alpha[a] then
+				lambda[a] = try_blacklist(alpha[a])
+			end
+		end
 		return table.concat(lambda, " ")
 	end
 end

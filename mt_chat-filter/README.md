@@ -7,13 +7,16 @@ Created by monk <sub>(monk.moe @ [SquareOne](https://discord.gg/pE4Tu3cf23))</su
 <sup>Copyright (c) 2023-2024, Licensed under CC0</sup>
 
 ##
-Messages are filtered using blacklist words by associating suffix->prefix->word.  It removes extra whitespace, non-alphabet characters, duplicate letters, ~~and joins gapped words~~(nf) before the index search.
+Messages are filtered using blacklist associations via word length->suffix->prefix->word.
+
+The filter removes URLs within strings, extra spaces, and joins gapped words.
 
 Example of Suffix->Prefix table structre:
 ```lua
-k = { m = { "monk" },
-      l = { "link" } },
-e = { f = { "face", "frostbite" } }
+	[3] = { o = { "one" } },
+	[4] = { m = { "mono", "monk" },
+			l = { "link" } },
+	[6] = { s = { "square" } },
 ```
 Words filtered are replaced with asterisk(*) before sending to public chat.
 
@@ -22,19 +25,20 @@ Reload the filter lists after adding new words manually to the table files, use 
 ##
 ### Version **`dev_0.06`**
 - [ ] Add items to black list from in-game
+- [ ] Automatic update if on black/white list changes
 - [ ] Add /filter_off command to disable filter for self
-- [ ] > ? Automatic update if on black/white list changes
 - [X] Reload blacklist command
 - [X] caps limit
 - [X] links
 - [ ] exp tag
 - [ ] ranks
-- [ ] faction tag + api support
+- [ ] faction tag
 - [ ] player, server tag
-- [ ] > mention  -- is better way to do it?
+- [ ] filtering callbacks
+- [ ] highlight @name mentions
 - [ ] mute player
-- [ ] Figure out how to join gapped words
-- [ ] To do
+- [X] Figure out how to join gapped words
+- [ ] Replace words and punctuation as-if if not censored
 - [ ] To do
 - [ ] 
 - [ ] 
