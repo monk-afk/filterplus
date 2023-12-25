@@ -9,7 +9,7 @@ Created by monk <sub>(monk.moe @ [SquareOne](https://discord.gg/pE4Tu3cf23))</su
 ##
 Messages are filtered using blacklist associations via word length->suffix->prefix->word.
 
-The filter removes URLs within strings, extra spaces, and joins gapped words.
+The filter removes URLs within strings, extra spaces, and joins gapped words. Numbers and symbols are ignored during blacklist check.
 
 Example of Suffix->Prefix table structre:
 ```lua
@@ -34,11 +34,11 @@ Reload the filter lists after adding new words manually to the table files, use 
 - [ ] ranks
 - [ ] faction tag
 - [ ] player, server tag
-- [ ] filtering callbacks
+- [ ] filtering callbacks (api)
 - [ ] highlight @name mentions
 - [ ] mute player
 - [X] Figure out how to join gapped words
-- [ ] Replace words and punctuation as-if if not censored
-- [ ] To do
+- [X] Replace words and punctuation as-is if not censored
+- [ ] Scrape old blacklists into new
 - [ ] 
 - [ ] 

@@ -11,7 +11,7 @@ This portable module provides a functional starting point for a chat/message fil
 
 Messages are filtered using blacklist associations via word length->suffix->prefix->word.  
 
-The filter removes URLs within strings, extra spaces, and joins gapped words.
+The filter removes URLs within strings, extra spaces, and joins gapped words. Numbers and symbols are ignored during blacklist check.
 
 Table structre:
 ```lua

@@ -54,7 +54,9 @@ end
 index_filter()
 
 
-local function try_blacklist(word)
+local function try_blacklist(try_word)
+	word = gsub(lower(try_word), "[^a-zA-Z]", "")
+
 	local index = #word
 
 	if index <= 1 then
@@ -69,10 +71,11 @@ local function try_blacklist(word)
 		for n = 1, #blacklist_keys do
 			if word == blacklist_keys[n] then
 				word = rep("*", #blacklist_keys[n])
+				return word
 			end
 		end
 	end
-	return word
+	return try_word
 end
 
 
@@ -105,7 +108,7 @@ end
 minetest.register_on_chat_message(function(name, message)
 	local string = message
 
-	if #string > 28 then
+	if #string > max_caps then
 		string:lower()
 	end
 
