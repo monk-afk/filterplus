@@ -1,7 +1,7 @@
   --[[  Chat Filter (Lua Port)  ]]--
   --[[   // monk @ SquareOne    ]]--
   --[[   blacklist.lua - 0.02   ]]--
-  --[[     Licensed by CC0      ]]--
+  --[[     Licensed by MIT      ]]--
 return {
 		  -- A
 	"anal",
