@@ -1,7 +1,7 @@
   --[[  Chat Filter (Minetest)  ]]--
   --[[   // monk @ SquareOne    ]]--
   --[[   init.lua - dev_0.07    ]]--
-  --[[     Licensed by CC0      ]]--
+  --[[     Licensed by MIT      ]]--
 local modpath = minetest.get_modpath(minetest.get_current_modname())
 local storage = minetest.get_mod_storage()
 
