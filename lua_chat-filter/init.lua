@@ -1,7 +1,7 @@
   --[[  Chat Filter (Lua Port)  ]]--
   --[[   // monk @ SquareOne    ]]--
   --[[   init.lua - dev_0.08    ]]--
-  --[[     Licensed by CC0      ]]--
+  --[[     Licensed by MIT      ]]--
 local match = string.match
 local gmatch = string.gmatch
 local lower = string.lower
