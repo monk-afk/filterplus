@@ -4,7 +4,7 @@ Chat Message Filter and Censor Module, with Index-Key Associated Blacklist.
 
 Created by monk <sub>(monk.moe @ [SquareOne](https://discord.gg/pE4Tu3cf23))</sub>
 
-<sup>Copyright (c) 2023-2024, Licensed under CC0</sup>
+<sup>Copyright (c) 2023-2024, Licensed under MIT</sup>
 
 ##
 This portable module provides a functional starting point for a chat/message filter.
