@@ -1,7 +1,6 @@
-  --[[  Chat Filter (Lua Port)  ]]--
-  --[[   // monk @ SquareOne    ]]--
-  --[[   blacklist.lua - 0.02   ]]--
-  --[[     Licensed by MIT      ]]--
+	--[[      Filter Plus      ]]--
+	--[[  blacklist.lua - 003  ]]--
+	--[[  Lic.MIT(c)2023 monk  ]]--
 return {
 		  -- A
 	"anal",
@@ -27,7 +26,7 @@ return {
 	"cunt",
 		  -- D
 	"dick",
-	"domination",
+	"dominatrix",
 		  -- E
 	"escort",
 		  -- F
@@ -38,6 +37,7 @@ return {
 	"fecal",
 	"fisting",
 	"fk",
+	"fuc",
 	"fuk",
 	"fuck",
 	"fucker",
@@ -68,6 +68,7 @@ return {
 		  -- N
 	"nigger",
 	"nigga",
+	"niqqa",
 	"nsfw",
 	"nude",
 		  -- O
@@ -83,7 +84,7 @@ return {
 	"pubes",
 	"puta",
 		  -- Q
-	"quim",
+	"quif",
 		  -- R
 	"rape",
 	"raping",
@@ -96,7 +97,6 @@ return {
 	"sexuality",
 	"sexy",
 	"shit",
-	"sht",
 	"shithead",
 	"shits",
 	"shitty",
