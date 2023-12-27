@@ -1,5 +1,5 @@
 	--[[      Filter Plus      ]]--
-	--[[   init.lua - 0.0.8    ]]--
+	--[[   init.lua - 0.0.9    ]]--
 	--[[  Lic.MIT(c)2023 monk  ]]--
 minetest.register_privilege("mute", "Grants usage of mute command.")
 
@@ -124,59 +124,8 @@ local function try_blacklist(try_word)
 	return try_word
 end
 
+local function join_for_blacklist(word_table)
 
-local function remove_links(string)
-	return gsub(string, "h*t*t*p*s*:*/*/*%S+%.+%S+%.*%S%S%S?/*%S*%s?", "")
-end
-
-local function make_word_table(string)
-	local word_table, n = {}, 1
-
-	gsub(string, "%S+", function(word)
-		if not word_table[n] then
-			word_table[n] = ""
-		end
-		
-		word_table[n] = word
-		n = n + 1
-	end)
-	return word_table
-end
-
-
-local function send_message(message, sender, mentions)
-	if #mentions >= 1 then
-		for recipient,_ in pairs(players_online) do
-			for i = 1, #mentions do
-				if recipient == mentions[i] then
-					message = color(cc.green, message)
-					break
-				end
-			end
-			send_player(recipient, ptag(sender)..message)
-		end
-		return
-	end
-	return send_all(ptag(sender)..message)
-end
-
-
-local on_chat_message = minetest.register_on_chat_message
-on_chat_message(function(name, message)
-
-	if players_online[name] >= time() then
-		return true, send_player(name, mtag.."You are muted.")
-	end
-
-	local string = message
-	if #string > max_caps then
-		lower(string)
-	end
-
-	string = remove_links(string)
-
-	local word_table = {}
-	word_table = make_word_table(string)
 	local a = 1
 	local alpha = {}
 	local omega = word_table
@@ -202,7 +151,91 @@ on_chat_message(function(name, message)
 			lambda[a] = try_blacklist(alpha[a])
 		end
 	end
+	return lambda
+end
 
+local function remove_links(string)
+	return gsub(string, "h*t*t*p*s*:*/*/*%S+%.+%S+%.*%S%S%S?/*%S*%s?", "")
+end
+
+local function make_word_table(string)
+	local word_table, n = {}, 1
+
+	gsub(string, "%S+", function(word)
+		if not word_table[n] then
+			word_table[n] = ""
+		end
+		
+		word_table[n] = word
+		n = n + 1
+	end)
+	return word_table
+end
+
+
+local function send_message(message, sender, mentions)
+	if #mentions >= 1 then
+		for recipient,_ in pairs(players_online) do
+			local msg_color = cc.white
+			
+			for i = 1, #mentions do
+				if recipient == mentions[i] then
+					msg_color = cc.green
+					break
+				end
+			end
+			
+			send_player(recipient, ptag(sender)..color(msg_color, message))
+		end
+		return
+	end
+
+	return send_all(ptag(sender)..message)
+end
+
+
+local on_chat_message = minetest.register_on_chat_message
+on_chat_message(function(name, message)
+
+	if players_online[name] >= time() then
+		return true, send_player(name, mtag.."You are muted.")
+	end
+
+	local string = message
+	if #string > max_caps then
+		lower(string)
+	end
+
+	string = remove_links(string)
+
+	local word_table = {}
+	word_table = make_word_table(string)
+	-- local a = 1
+	-- local alpha = {}
+	-- local omega = word_table
+	-- local lambda = {}
+	
+	-- for o = 1, #word_table do
+	-- 	if alpha[a] and #omega[o] > 1 then
+	-- 		alpha[a] = nil 
+	-- 		a = a + 1
+	-- 	end
+
+	-- 	if #omega[o] > 1 then
+	-- 		lambda[a] = try_blacklist(omega[o])
+	-- 		a = a + 1
+	-- 	end
+
+	-- 	if #omega[o] == 1 then
+	-- 		alpha[a] = (alpha[a] or "") .. omega[o]
+	-- 		lambda[a] = alpha[a]
+	-- 	end
+
+	-- 	if alpha[a] then
+	-- 		lambda[a] = try_blacklist(alpha[a])
+	-- 	end
+	-- end
+	local lambda = join_for_blacklist(word_table)
 	local mentions = {}
 	for word = 1,#lambda do
 		gsub(lambda[word], "^([a-zA-Z0-9_-]+):$", function(name)
