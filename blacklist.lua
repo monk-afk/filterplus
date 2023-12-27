@@ -43,6 +43,7 @@ return {
 	"fucker",
 	"fuckin",
 	"fucking",
+	"fuckyou",
 	"futanari",
 	"fvck",
 		  -- G

@@ -92,6 +92,25 @@ local index_blacklist = function()
 end
 index_blacklist()
 
+local function send_message(message, sender, mentions)
+
+	message = concat(message, " ")
+
+	if mentions then
+		for recipient,_ in pairs(players_online) do
+			local msg_color = cc.white
+			
+				if mentions[recipient] then
+					msg_color = cc.green
+				end
+			
+			send_player(recipient, ptag(sender)..color(msg_color, message))
+		end
+		return
+	end
+
+	return send_all(ptag(sender)..message)
+end
 
 local function try_blacklist(try_word)
 	local word = gsub(lower(try_word), "[^a-zA-Z]", "")
@@ -124,14 +143,23 @@ local function try_blacklist(try_word)
 	return try_word
 end
 
-local function join_for_blacklist(word_table)
-
+local function sanitize_message(word_table, sender)
+	local mentions
 	local a = 1
 	local alpha = {}
 	local omega = word_table
 	local lambda = {}
 	
 	for o = 1, #word_table do
+			local name = gsub(word_table[o], ":?", "")
+			local mentioned = players_online[name]
+			if mentioned then
+				if not mentions then
+					mentions = {}
+				end
+				mentions[name] = true
+			end
+
 		if alpha[a] and #omega[o] > 1 then
 			alpha[a] = nil 
 			a = a + 1
@@ -151,7 +179,7 @@ local function join_for_blacklist(word_table)
 			lambda[a] = try_blacklist(alpha[a])
 		end
 	end
-	return lambda
+	return send_message(lambda, sender, mentions)
 end
 
 local function remove_links(string)
@@ -173,27 +201,6 @@ local function make_word_table(string)
 end
 
 
-local function send_message(message, sender, mentions)
-	if #mentions >= 1 then
-		for recipient,_ in pairs(players_online) do
-			local msg_color = cc.white
-			
-			for i = 1, #mentions do
-				if recipient == mentions[i] then
-					msg_color = cc.green
-					break
-				end
-			end
-			
-			send_player(recipient, ptag(sender)..color(msg_color, message))
-		end
-		return
-	end
-
-	return send_all(ptag(sender)..message)
-end
-
-
 local on_chat_message = minetest.register_on_chat_message
 on_chat_message(function(name, message)
 
@@ -210,43 +217,8 @@ on_chat_message(function(name, message)
 
 	local word_table = {}
 	word_table = make_word_table(string)
-	-- local a = 1
-	-- local alpha = {}
-	-- local omega = word_table
-	-- local lambda = {}
-	
-	-- for o = 1, #word_table do
-	-- 	if alpha[a] and #omega[o] > 1 then
-	-- 		alpha[a] = nil 
-	-- 		a = a + 1
-	-- 	end
 
-	-- 	if #omega[o] > 1 then
-	-- 		lambda[a] = try_blacklist(omega[o])
-	-- 		a = a + 1
-	-- 	end
-
-	-- 	if #omega[o] == 1 then
-	-- 		alpha[a] = (alpha[a] or "") .. omega[o]
-	-- 		lambda[a] = alpha[a]
-	-- 	end
-
-	-- 	if alpha[a] then
-	-- 		lambda[a] = try_blacklist(alpha[a])
-	-- 	end
-	-- end
-	local lambda = join_for_blacklist(word_table)
-	local mentions = {}
-	for word = 1,#lambda do
-		gsub(lambda[word], "^([a-zA-Z0-9_-]+):$", function(name)
-			insert(mentions, name)
-		end)
-	end
-
-	message = concat(lambda, " ")
-
-	send_message(message, name, mentions)
-	return true 
+	return true, sanitize_message(word_table, name)
 end)
 
 
