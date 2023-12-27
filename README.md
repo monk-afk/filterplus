@@ -58,5 +58,9 @@ Manage the Blacklist
 - [X] Figure out how to join gapped words
 - [X] Replace words and punctuation as-is if not censored
 - [ ] Scrape old blacklists into new
-- [ ] 
-- [ ] 
+- [ ] additional evasion techniques: 'aabbcc', 'abc d',
+- [ ] .
+
+### Known Bugs
+- [X] mentiond highligh sends alphabetically to all after named player
+- [ ] .
