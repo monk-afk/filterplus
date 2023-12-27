@@ -58,7 +58,7 @@ Manage the Blacklist
 - [X] Figure out how to join gapped words
 - [X] Replace words and punctuation as-is if not censored
 - [ ] Scrape old blacklists into new
-- [ ] additional evasion techniques: 'aabbcc', 'abc d',
+- [ ] additional evasion techniques: 'abccc', 'abc d', 'abcdxyz'
 - [ ] .
 
 ### Known Bugs
