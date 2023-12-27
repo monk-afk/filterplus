@@ -9,7 +9,7 @@ Created by monk <sub>(Discord: `monk.moe`)</sub>
 ##
 Blacklisted words are indexed by length->suffix->prefix->word.
 
-The filter removes URLs, extra spaces, and joins gapped words.
+The filter removes URLs, extra spaces, and joins gapped words (w o r d g a p).
 
 Censored words are replaced with asterisk(*), except filtered URLs are removed entirely. Uncensored words return to the message unaltered.
 
@@ -17,24 +17,20 @@ Mentioning other players by name followed by a colon, `monk:`, will send the mes
 
 Example of Length->Suffix->Prefix->Word table structre:
 ```lua
-	[4] = {
-		k = { f = {"fork", "funk"},
-			  t = {"tank"}
-			},
-		o = { p = {"pogo"} },
-	},
-	[5] = {	
-		h = { c = {"coach"} },
-	},
+[4] = { k = { f = {"fork", "funk"},
+              t = {"tank"}
+            },
+        o = { p = {"pogo"} },
+      },
+[5] = {	h = { c = {"coach"} },},
 ```
-
 ##
 
 Chat chatcommands:
 
 - Mute player: 
 ```md
-/mute <playername> [<seconds>] (no seconds will result in 10 minute by defailt)
+/mute <playername> [<minutes>] -- (10 minutes if empty)
 ```
 Remove mute
 ```md
@@ -57,7 +53,7 @@ Manage the Blacklist
 - [ ] faction tag
 - [X] player, server tag
 - [ ] filtering callbacks (api)
-- [X] highlight @name mentions
+- [X] highlight name mentions
 - [X] mute/unmute player
 - [X] Figure out how to join gapped words
 - [X] Replace words and punctuation as-is if not censored
