@@ -41,7 +41,7 @@ Manage the Blacklist
 /blacklist <insert>|<remove> <word>
 ```
 ##
-### Version **`dev_0.08`**
+### Version **`dev_0.0.9`**
 - [X] Add items to black list from in-game
 - [X] Automatic update if on black/white list changes
 - [ ] Add /filter_off command to disable filter for self
@@ -59,8 +59,4 @@ Manage the Blacklist
 - [X] Replace words and punctuation as-is if not censored
 - [ ] Scrape old blacklists into new
 - [ ] additional evasion techniques: 'abccc', 'abc d', 'abcdxyz'
-- [ ] .
-
-### Known Bugs
-- [X] mentiond highligh sends alphabetically to all after named player
 - [ ] .
