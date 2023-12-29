@@ -27,12 +27,15 @@ return {
 	"cum",
 	"cunt",
 		  -- D
+	"dck",
 	"dick",
+	"dik",
 	"dominatrix",
 		  -- E
 	"escort",
 		  -- F
 	"fag",
+	"faggot",
 	"fap",
 	"fck",
 	"fckn",

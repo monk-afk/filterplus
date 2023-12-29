@@ -1,5 +1,5 @@
   --[[      FilterPlus      ]]--
-  --[[   init.lua - 0.010   ]]--
+  --[[   init.lua - 0.011   ]]--
   --[[  monk (c) 2023 MITL  ]]--
 minetest.register_privilege("mute", "Grants usage of mute command.")
 minetest.register_privilege("blacklist", "Grants blacklist management.")
@@ -11,15 +11,15 @@ local factions_available = minetest.global_exists("factions")
 local ranks_available = minetest.global_exists("ranks")
 local exp_available = minetest.global_exists("exp")
 
-local gmatch = string.gmatch
 local concat = table.concat
 local insert = table.insert
+local gmatch = string.gmatch
 local match  = string.match
 local lower  = string.lower
 local gsub   = string.gsub
-local time   = os.time
 local rep    = string.rep
 local sub    = string.sub
+local time   = os.time
 
 local send_player = minetest.chat_send_player
 local send_all = minetest.chat_send_all
@@ -125,6 +125,10 @@ end
 local function send_message(message, sender, mentions)
 	local message = concat(message, " ")
 	local ptags = player_tags(sender)
+
+	if #message > max_caps then
+		message = lower(message)
+	end
 
 	if mentions then
 		for recipient,_ in pairs(players_online) do
@@ -248,10 +252,6 @@ on_chat_message(function(name, message)
 	end
 
 	local string = message
-	if #string > max_caps then
-		lower(string)
-	end
-
 	string = remove_links(string)
 
 	local word_table = {}
