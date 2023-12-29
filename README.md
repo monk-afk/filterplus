@@ -1,62 +1,42 @@
-## Filter Plus
+## FilterPlus
+Tree indexed chat filter and censor, mute command, player tags, and mention highlight.
 
-Word Filtering and Censor Module with blacklist searching by trie.
+monk 
 
-Created by monk <sub>(Discord: `monk.moe`)</sub>
+<sup>Copyright (c) 2023, MIT License</sup>
 
-<sup>Copyright (c) 2023, Licensed under MIT</sup>
+## Details
+The blacklist is indexed by length->anchor(Z)->anchor(A)->word.
 
-##
-Blacklisted words are indexed by length->suffix->prefix->word.
+Removes URLs, trims extra spaces, and joins gapped words.
 
-The filter removes URLs, extra spaces, and joins gapped words (w o r d g a p).
+Censored words are replaced with asterisk(*).
 
-Censored words are replaced with asterisk(*), except filtered URLs are removed entirely. Uncensored words return to the message unaltered.
+Player tag format is: `{Rank}[Faction](Exp)<PlayerName>`.
 
-Mentioning other players by name followed by a colon, `monk:`, will send the message to that player in green text. 
+Mentioning players by name sends green text.
 
-Example of Length->Suffix->Prefix->Word table structre:
-```lua
-[4] = { k = { f = {"fork", "funk"},
-              t = {"tank"}
-            },
-        o = { p = {"pogo"} },
-      },
-[5] = {	h = { c = {"coach"} },},
-```
-##
-
-Chat chatcommands:
-
-- Mute player: 
+If blacklist is not found in mod_storage, it is created from `blacklist.lua`.
+## Chat commands
+- Mute player (requires `mute` priv)
+  - (10 minute min, two hour max)
 ```md
-/mute <playername> [<minutes>] -- (10 minutes if empty)
+/mute <playername> [<minutes>]
 ```
-Remove mute
+- Remove mute (requires `mute` priv)
 ```md
 /unmute <playername>
 ```
-Manage the Blacklist
+- Manage *mod_storage* blacklisted words (requires `blacklist` priv)
 ```md
 /blacklist <insert>|<remove> <word>
 ```
 ##
-### Version **`dev_0.0.9`**
-- [X] Add items to black list from in-game
-- [X] Automatic update if on black/white list changes
+**Planned Updates**
 - [ ] Add /filter_off command to disable filter for self
-- [X] Reload blacklist command
-- [X] caps limit
-- [X] links
-- [ ] exp tag
-- [ ] ranks
-- [ ] faction tag
-- [X] player, server tag
-- [ ] filtering callbacks (api)
-- [X] highlight name mentions
-- [X] mute/unmute player
-- [X] Figure out how to join gapped words
-- [X] Replace words and punctuation as-is if not censored
-- [ ] Scrape old blacklists into new
-- [ ] additional evasion techniques: 'abccc', 'abc d', 'abcdxyz'
-- [ ] .
+- [ ] Scrape previous blacklists into new (multi-lingual)
+- [ ] Additional evasion techniques
+- [ ] Add mute-time check to /mute
+- [ ] Export blacklist
+- [ ] 
+Current Version **`0.010`**

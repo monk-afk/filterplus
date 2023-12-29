@@ -1,41 +1,43 @@
-	--[[      Filter Plus      ]]--
-	--[[   init.lua - 0.0.9    ]]--
-	--[[  Lic.MIT(c)2023 monk  ]]--
+  --[[      FilterPlus      ]]--
+  --[[   init.lua - 0.010   ]]--
+  --[[  monk (c) 2023 MITL  ]]--
 minetest.register_privilege("mute", "Grants usage of mute command.")
+minetest.register_privilege("blacklist", "Grants blacklist management.")
 
 local modpath = minetest.get_modpath(minetest.get_current_modname())
 local storage = minetest.get_mod_storage()
 
-local match = string.match
+local factions_available = minetest.global_exists("factions")
+local ranks_available = minetest.global_exists("ranks")
+local exp_available = minetest.global_exists("exp")
+
 local gmatch = string.gmatch
-local rep = string.rep
-local lower = string.lower
-local gsub = string.gsub
-local sub = string.sub
-local time = os.time
 local concat = table.concat
 local insert = table.insert
+local match  = string.match
+local lower  = string.lower
+local gsub   = string.gsub
+local time   = os.time
+local rep    = string.rep
+local sub    = string.sub
+
+local send_player = minetest.chat_send_player
+local send_all = minetest.chat_send_all
+local send_log = function(text)
+	return minetest.log("action","[Filter] "..text)
+end
 
 local color = minetest.colorize
-local send_all = minetest.chat_send_all
-local send_player = minetest.chat_send_player
-local send_log = function(text) return minetest.log("action","[Filter] "..text) end
-
-local max_caps = 12
 local cc = {
-	red		= "#C10023",
-	dark 	= "#888888",
+	red		= "#CC2023",
+	green	= "#23F00D",
 	orange	= "#DEAD23",
-	green	= "#1EFF00",
-	blue	= "#0099FF",
-	cyan	= "#0CBBBD",
-	pink	= "#FF00CC",
 	white	= "#FFFFFF",
 }
 
-local stag = " # "..color(cc.red,"Square")..color(cc.dark,"One").." > "
-local mtag = " # "..color(cc.orange, "Filter").." > "
-local ptag = function(name) return "<"..name.."> " end
+local mod_tag = " # "..color(cc.orange, "Filter").." > "
+local max_caps = 12
+
 
 local filter = {
 	blacklist = {},
@@ -44,6 +46,7 @@ local filter = {
 local blacklist = filter.blacklist
 local players_online = filter.players_online
 local blacklist_file = modpath.."/blacklist.lua"
+
 
 local function load_blacklist()
 	local blacklist_items = minetest.deserialize(storage:get_string("blacklist"))
@@ -57,7 +60,6 @@ local function load_blacklist()
 	end
     return blacklist_items
 end
-
 local blacklist_items = load_blacklist()
 
 local function save_blacklist_items()
@@ -92,25 +94,51 @@ local index_blacklist = function()
 end
 index_blacklist()
 
-local function send_message(message, sender, mentions)
 
-	message = concat(message, " ")
+local function player_tags(name)
+	local tags, n = {""}, 0
+
+	if ranks_available then
+		local rank_title, rank_color = ranks.get_player_rank(name)
+		if rank_title then
+			tags[#tags+1] = "{"..color(rank_color, rank_title).."}"
+		end
+	end
+
+	if factions_available then
+		local faction_name, faction_color = factions.is_player_in(name)
+		if faction_name then
+			tags[#tags+1] = "["..color(faction_color, faction_name).."]"
+		end
+	end
+
+	if exp_available then
+		tags[#tags+1] = "("..exp.get_player_exp(name)..")"
+	end
+
+	tags[#tags+1] = "<"..name.."> "
+
+	return concat(tags)
+end
+
+
+local function send_message(message, sender, mentions)
+	local message = concat(message, " ")
+	local ptags = player_tags(sender)
 
 	if mentions then
 		for recipient,_ in pairs(players_online) do
 			local msg_color = cc.white
-			
 				if mentions[recipient] then
 					msg_color = cc.green
 				end
-			
-			send_player(recipient, ptag(sender)..color(msg_color, message))
+			send_player(recipient, ptags..color(msg_color, message))
 		end
 		return
 	end
-
-	return send_all(ptag(sender)..message)
+	return send_all(ptags..message)
 end
+
 
 local function try_blacklist(try_word)
 	local word = gsub(lower(try_word), "[^a-zA-Z]", "")
@@ -126,7 +154,7 @@ local function try_blacklist(try_word)
 
 	if not blacklist[index] or
 			not blacklist[index][tail] or
-					not blacklist[index][tail][head] then
+			not blacklist[index][tail][head] then
 		return try_word
 	end
 
@@ -143,7 +171,18 @@ local function try_blacklist(try_word)
 	return try_word
 end
 
-local function sanitize_message(word_table, sender)
+
+filterplus_api = {}
+function filterplus_api.check_word(word)
+local try_word = try_blacklist(word)
+	if try_word == word then
+		return false
+	end
+	return true, try_word
+end
+
+
+local function process_message(word_table, sender)
 	local mentions
 	local a = 1
 	local alpha = {}
@@ -151,7 +190,7 @@ local function sanitize_message(word_table, sender)
 	local lambda = {}
 	
 	for o = 1, #word_table do
-			local name = gsub(word_table[o], ":?", "")
+			local name = gsub(word_table[o], "[^a-zA-Z0-9_-]*$", "")
 			local mentioned = players_online[name]
 			if mentioned then
 				if not mentions then
@@ -171,8 +210,8 @@ local function sanitize_message(word_table, sender)
 		end
 
 		if #omega[o] == 1 then
-			alpha[a] = (alpha[a] or "") .. omega[o]
-			lambda[a] = alpha[a]
+			alpha[a]  = (alpha[a] or "") .. omega[o]
+			lambda[a] =  alpha[a]
 		end
 
 		if alpha[a] then
@@ -193,10 +232,10 @@ local function make_word_table(string)
 		if not word_table[n] then
 			word_table[n] = ""
 		end
-		
 		word_table[n] = word
 		n = n + 1
 	end)
+
 	return word_table
 end
 
@@ -205,7 +244,7 @@ local on_chat_message = minetest.register_on_chat_message
 on_chat_message(function(name, message)
 
 	if players_online[name] >= time() then
-		return true, send_player(name, mtag.."You are muted.")
+		return true, send_player(name, mod_tag..color(cc.red, "You are muted."))
 	end
 
 	local string = message
@@ -218,14 +257,14 @@ on_chat_message(function(name, message)
 	local word_table = {}
 	word_table = make_word_table(string)
 
-	return true, sanitize_message(word_table, name)
+	return true, process_message(word_table, name)
 end)
 
 
 minetest.register_chatcommand("blacklist", {
     description = "Manage filter blacklist",
 	params = "<insert|remove> <word>",
-    privs = {server = true},
+    privs = {blacklist = true},
     func = function(name, params)
 		if minetest.check_player_privs(name, {server = true}) then
 			params = params:split(" ")
@@ -233,21 +272,20 @@ minetest.register_chatcommand("blacklist", {
 			local word = params[2]
 
 			if not word or not switch then
-				return send_player(name, mtag.."Usage: /blacklist <insert|remove> <word>")
+				return send_player(name, mod_tag.."Usage: /blacklist <insert|remove> <word>")
 			end
 
 			local try_word = try_blacklist(word) or "*"
 
 			if switch == "insert" then
 				if try_word ~= word then
-					return send_player(name, mtag.."Word "..word.." already blacklisted")
+					return send_player(name, mod_tag.."Word "..word.." already blacklisted")
 				end
-
-				insert(blacklist_items, word)
+				blacklist_items[#blacklist_items+1] = word
 
 			elseif switch == "remove" then
 				if try_word == word then
-					return send_player(name, mtag.."Word "..word.." not found in blacklist")
+					return send_player(name, mod_tag.."Word "..word.." not found in blacklist")
 				end
 
 				for i = 1, #blacklist_items do
@@ -255,18 +293,20 @@ minetest.register_chatcommand("blacklist", {
 						blacklist_items[i] = nil
 					end
 				end
+
 			else
-				return send_player(name, mtag.."please use 'insert' or 'remove'")
+				return send_player(name, mod_tag.."please use 'insert' or 'remove'")
 			end
 
 			save_blacklist_items()
 			blacklist = {}
 			index_blacklist()
 
-			return send_player(name, mtag.."Blacklist entry "..word.." "..switch.."!")
+			return send_player(name, mod_tag.."Successful "..switch.." of: '"..word.."'")
 		end
     end
 })
+
 
 minetest.register_chatcommand("mute", {
 	description = "Mutes a player for a set time in minutes",
@@ -282,7 +322,7 @@ minetest.register_chatcommand("mute", {
 		end
 
 		if not minetest.player_exists(playername) then
-			return send_player(name, mtag.."Player <"..playername.."> does not exist.")
+			return send_player(name, mod_tag.."Player <"..playername.."> does not exist.")
 		end
 
 		if minutes > 120 then
@@ -296,9 +336,10 @@ minetest.register_chatcommand("mute", {
 		local mute_time = time() + seconds
 
 		players_online[playername] = mute_time
-		send_log(name.." muted "..playername.." for "..minutes.." minues.")
-		send_player(name, mtag..playername.." muted for "..minutes.." minutes.")
-		send_player(playername, mtag.."You are muted for "..minutes.." minutes.")
+
+		send_log("[Report]: "..name.." muted "..playername.." for "..minutes.." minutes.")
+		send_player(name, mod_tag.."Muted <"..playername.."> muted for "..minutes.." minutes.")
+		send_player(playername, mod_tag.."You are muted for "..color(cc.red, minutes).." minutes.")
 	end,
 })
 
@@ -315,10 +356,10 @@ minetest.register_chatcommand("unmute", {
 
 		if players_online[playername] and players_online[playername] >= time() then
 			players_online[playername] = time()
-			send_player(name, mtag..playername.." mute removed.")
-			send_player(playername, mtag.."You are not muted.")
+			send_player(name, mod_tag..playername.." mute removed.")
+			send_player(playername, mod_tag.."You are not muted.")
 		else
-			return send_player(name, mtag..playername.." is not currently muted.")
+			return send_player(name, mod_tag..playername.." is not currently muted.")
 		end
 	end,
 })
@@ -359,3 +400,6 @@ local function expunge_daemon()
 	minetest.after(1800, expunge_daemon)
 end
 minetest.after(1800, expunge_daemon)
+
+
+minetest.log("action", "[FilterPlus] Loaded!")
