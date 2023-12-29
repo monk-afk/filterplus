@@ -1,6 +1,6 @@
-	--[[      Filter Plus      ]]--
-	--[[  blacklist.lua - 003  ]]--
-	--[[  Lic.MIT(c)2023 monk  ]]--
+  --[[      FilterPlus      ]]--
+  --[[   blacklist.lua v4   ]]--
+  --[[  monk (c) 2023 MITL  ]]--
 return {
 		  -- A
 	"anal",
@@ -16,6 +16,8 @@ return {
 	"bitch",
 	"bitches",
 	"boner",
+	"bullshit",
+	"bullsht",
 	"busty",
 		  -- C
 	"clit",
@@ -37,10 +39,12 @@ return {
 	"fecal",
 	"fisting",
 	"fk",
+	"fkn",
 	"fuc",
 	"fuk",
 	"fuck",
 	"fucker",
+	"fuckers",
 	"fuckin",
 	"fucking",
 	"fuckyou",
@@ -92,6 +96,7 @@ return {
 	"rapist",
 		  -- S
 	"schlong",
+	"segs",
 	"sex",
 	"sexo",
 	"sexual",
