@@ -230,14 +230,17 @@ local function remove_links(string)
 end
 
 local function make_word_table(string)
-	local word_table, n = {}, 1
+	local word_table
+	local n = 1
 
 	gsub(string, "%S+", function(word)
-		if not word_table[n] then
-			word_table[n] = ""
+		if word then
+			if not word_table then
+				word_table = {}
+			end
+			word_table[n] = word
+			n = n + 1
 		end
-		word_table[n] = word
-		n = n + 1
 	end)
 
 	return word_table
@@ -257,7 +260,11 @@ on_chat_message(function(name, message)
 	local word_table = {}
 	word_table = make_word_table(string)
 
-	return true, process_message(word_table, name)
+	if word_table then
+		process_message(word_table, name)
+	end
+
+	return true
 end)
 
 
@@ -266,7 +273,7 @@ minetest.register_chatcommand("blacklist", {
 	params = "<insert|remove> <word>",
     privs = {blacklist = true},
     func = function(name, params)
-		if minetest.check_player_privs(name, {server = true}) then
+		if minetest.check_player_privs(name, {blacklist = true}) then
 			params = params:split(" ")
 			local switch = params[1]
 			local word = params[2]
