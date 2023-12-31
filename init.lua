@@ -1,5 +1,5 @@
   --[[      FilterPlus      ]]--
-  --[[   init.lua - 0.011   ]]--
+  --[[   init.lua - 0.012   ]]--
   --[[  monk (c) 2023 MITL  ]]--
 minetest.register_privilege("mute", "Grants usage of mute command.")
 minetest.register_privilege("blacklist", "Grants blacklist management.")

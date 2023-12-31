@@ -39,4 +39,4 @@ If blacklist is not found in mod_storage, it is created from `blacklist.lua`.
 - [ ] Add mute-time check to /mute
 - [ ] Export blacklist
 
-Current Version **`0.011`**
+Current Version **`0.012`**
