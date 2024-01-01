@@ -1,5 +1,5 @@
   --[[      FilterPlus      ]]--
-  --[[   init.lua - 0.012   ]]--
+  --[[   init.lua - 0.013   ]]--
   --[[  monk (c) 2023 MITL  ]]--
 minetest.register_privilege("mute", "Grants usage of mute command.")
 minetest.register_privilege("blacklist", "Grants blacklist management.")
@@ -36,8 +36,7 @@ local cc = {
 }
 
 local mod_tag = " # "..color(cc.orange, "Filter").." > "
-local max_caps = 12
-
+local max_caps = 16
 
 local filter = {
 	blacklist = {},
@@ -194,15 +193,6 @@ local function process_message(word_table, sender)
 	local lambda = {}
 	
 	for o = 1, #word_table do
-			local name = gsub(word_table[o], "[^a-zA-Z0-9_-]*$", "")
-			local mentioned = players_online[name]
-			if mentioned then
-				if not mentions then
-					mentions = {}
-				end
-				mentions[name] = true
-			end
-
 		if alpha[a] and #omega[o] > 1 then
 			alpha[a] = nil 
 			a = a + 1
@@ -220,6 +210,16 @@ local function process_message(word_table, sender)
 
 		if alpha[a] then
 			lambda[a] = try_blacklist(alpha[a])
+		end
+
+		local word = gsub(word_table[o], "[^a-zA-Z0-9_-]*$", "")
+		for name,_ in pairs(players_online) do
+			if lower(word) == lower(name) then
+				if not mentions then
+					mentions = {}
+				end
+				mentions[name] = true
+			end
 		end
 	end
 	return send_message(lambda, sender, mentions)
@@ -404,9 +404,9 @@ local function expunge_daemon()
 			end
 		end
 	end
-	minetest.after(1800, expunge_daemon)
+	minetest.after(600, expunge_daemon)
 end
-minetest.after(1800, expunge_daemon)
+minetest.after(600, expunge_daemon)
 
 
 minetest.log("action", "[FilterPlus] Loaded!")
