@@ -17,6 +17,8 @@ Player tag format is: `{Rank}[Faction](Exp)<PlayerName>`.
 Mentioning players by name sends green text.
 
 If blacklist is not found in mod_storage, it is created from `blacklist.lua`.
+
+Includes API for other mods to check words against blacklist.
 ## Chat commands
 - Mute player (requires `mute` priv)
   - (10 minute min, two hour max)
@@ -32,11 +34,13 @@ If blacklist is not found in mod_storage, it is created from `blacklist.lua`.
 /blacklist <insert>|<remove> <word>
 ```
 ##
-**Planned Updates**
+**Desired Upgrades**
+- [ ] Add spam/flood control without affecting private msg
 - [ ] Add /filter_off command to disable filter for self
 - [ ] Scrape previous blacklists into new (multi-lingual)
 - [ ] Additional evasion techniques
 - [ ] Add mute-time check to /mute
 - [ ] Export blacklist
+- [ ] ...
 
-Current Version **`0.012`**
+Current Version **`0.013`**
