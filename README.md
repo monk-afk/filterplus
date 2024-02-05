@@ -1,9 +1,9 @@
 ## FilterPlus
-Tree indexed chat filter and censor, mute command, player tags, and mention highlight.
+Trie indexed chat filter and censor, mute command, player tags, and mention highlight.
 
-monk 
+Copyright (c) 2023 monk <monk.squareone@gmail.com>
 
-<sup>Copyright (c) 2023, MIT License</sup>
+<sup>MIT License</sup>
 
 ## Details
 The blacklist is indexed by length->anchor(Z)->anchor(A)->word.
@@ -12,9 +12,11 @@ Removes URLs, trims extra spaces, and joins gapped words.
 
 Censored words are replaced with asterisk(*).
 
-Player tag format is: `{Rank}[Faction](Exp)<PlayerName>`.
+Player name message tagging with mods supported.
 
 Mentioning players by name sends green text.
+
+Lowers casing of messages over 16 characters.
 
 If blacklist is not found in mod_storage, it is created from `blacklist.lua`.
 
@@ -33,14 +35,23 @@ Includes API for other mods to check words against blacklist.
 ```md
 /blacklist <insert>|<remove> <word>
 ```
-##
-**Desired Upgrades**
-- [ ] Add spam/flood control without affecting private msg
-- [ ] Add /filter_off command to disable filter for self
-- [ ] Scrape previous blacklists into new (multi-lingual)
-- [ ] Additional evasion techniques
-- [ ] Add mute-time check to /mute
-- [ ] Export blacklist
-- [ ] ...
+## Message Tags
+Message tag default format is: `<PlayerName>`.
 
-Current Version **`0.013`**
+Supported tags from mods if available: Ranks, Factions, Exp.
+
+The minetest.conf setting must be true, and pass required values.
+
+- `filterplus_ranks`
+   - `{Rank}` requires a string and ColorString
+
+- `filterplus_factions`
+	- `[Faction]` requires a string and ColorString 
+
+- `filterplus_exp`
+	- `(Exp)` requires integer or string
+
+Tag order is: `{Rank}[Faction](Exp)<PlayerName> message`
+##
+
+Current Version **`0.014`**

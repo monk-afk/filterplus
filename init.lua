@@ -1,15 +1,18 @@
   --[[      FilterPlus      ]]--
-  --[[   init.lua - 0.013   ]]--
-  --[[  monk (c) 2023 MITL  ]]--
+  --[[   init.lua - 0.014   ]]--
+  --[[    (C) 2023 monk     ]]--
 minetest.register_privilege("mute", "Grants usage of mute command.")
 minetest.register_privilege("blacklist", "Grants blacklist management.")
 
 local modpath = minetest.get_modpath(minetest.get_current_modname())
 local storage = minetest.get_mod_storage()
 
-local factions_available = minetest.global_exists("factions")
-local ranks_available = minetest.global_exists("ranks")
-local exp_available = minetest.global_exists("exp")
+local factions_available = minetest.settings:get_bool("filterplus_factions") and
+		minetest.global_exists("factions") == true
+local ranks_available = minetest.settings:get_bool("filterplus_ranks") and
+		minetest.global_exists("ranks") == true
+local exp_available = minetest.settings:get_bool("filterplus_exp") and
+		minetest.global_exists("exp") == true
 
 local concat = table.concat
 local insert = table.insert
@@ -23,9 +26,6 @@ local time   = os.time
 
 local send_player = minetest.chat_send_player
 local send_all = minetest.chat_send_all
-local send_log = function(text)
-	return minetest.log("action","[Filter] "..text)
-end
 
 local color = minetest.colorize
 local cc = {
@@ -95,7 +95,7 @@ index_blacklist()
 
 
 local function player_tags(name)
-	local tags, n = {""}, 0
+	local tags = {""}
 
 	if ranks_available then
 		local rank_title, rank_color = ranks.get_player_rank(name)
@@ -144,7 +144,7 @@ end
 
 
 local function try_blacklist(try_word)
-	local word = gsub(lower(try_word), "[^a-zA-Z]", "")
+	local word = gsub(lower(try_word), "[%p%c]", "")
 
 	local index = #word
 
@@ -231,15 +231,13 @@ end
 
 local function make_word_table(string)
 	local word_table
-	local n = 1
 
 	gsub(string, "%S+", function(word)
 		if word then
 			if not word_table then
 				word_table = {}
 			end
-			word_table[n] = word
-			n = n + 1
+			word_table[#word_table+1] = word
 		end
 	end)
 
@@ -261,6 +259,9 @@ on_chat_message(function(name, message)
 	word_table = make_word_table(string)
 
 	if word_table then
+		if #word_table <= 1 and #word_table[#word_table] == 1 then
+			return true
+		end
 		process_message(word_table, name)
 	end
 
@@ -344,7 +345,6 @@ minetest.register_chatcommand("mute", {
 
 		players_online[playername] = mute_time
 
-		send_log("[Report]: "..name.." muted "..playername.." for "..minutes.." minutes.")
 		send_player(name, mod_tag.."Muted <"..playername.."> muted for "..minutes.." minutes.")
 		send_player(playername, mod_tag.."You are muted for "..color(cc.red, minutes).." minutes.")
 	end,
@@ -407,6 +407,3 @@ local function expunge_daemon()
 	minetest.after(600, expunge_daemon)
 end
 minetest.after(600, expunge_daemon)
-
-
-minetest.log("action", "[FilterPlus] Loaded!")

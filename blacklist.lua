@@ -1,6 +1,6 @@
   --[[      FilterPlus      ]]--
   --[[   blacklist.lua v4   ]]--
-  --[[  monk (c) 2023 MITL  ]]--
+  --[[    (C) 2023 monk     ]]--
 return {
 		  -- A
 	"anal",
