@@ -1,3 +1,4 @@
+  --==[[  whitelist.lua - v1  ]]==--
 return {
     "a",
     "aa",
