@@ -1,3 +1,4 @@
+  --==[[  blacklist.lua - v5  ]]==--
 return {
     "acrotomophilia",
     "anal",
