@@ -1,8 +1,8 @@
   --[[      FilterPlus      ]]--
-  --[[   init.lua - 0.014   ]]--
+  --[[   init.lua - 0.1.1   ]]--
   --[[    (C) 2023 monk     ]]--
 minetest.register_privilege("mute", "Grants usage of mute command.")
-minetest.register_privilege("blacklist", "Grants blacklist management.")
+minetest.register_privilege("filterplus", "Grants Filter-list management.")
 
 local modpath = minetest.get_modpath(minetest.get_current_modname())
 local storage = minetest.get_mod_storage()
@@ -14,396 +14,383 @@ local ranks_available = minetest.settings:get_bool("filterplus_ranks") and
 local exp_available = minetest.settings:get_bool("filterplus_exp") and
 		minetest.global_exists("exp") == true
 
-local concat = table.concat
-local insert = table.insert
-local gmatch = string.gmatch
-local match  = string.match
-local lower  = string.lower
-local gsub   = string.gsub
-local rep    = string.rep
-local sub    = string.sub
-local time   = os.time
-
 local send_player = minetest.chat_send_player
 local send_all = minetest.chat_send_all
+local colorize = minetest.colorize
+local orange = colorzen.orange
+local red = colorzen.red
+local green = colorzen.green
+local white = colorzen.white
+local mtag = colorzen:mtag("Filter")
 
-local color = minetest.colorize
-local cc = {
-	red		= "#CC2023",
-	green	= "#23F00D",
-	orange	= "#DEAD23",
-	white	= "#FFFFFF",
-}
+local gsub   = string.gsub
+local lower  = string.lower
+local concat = table.concat
+local time   = os.time
 
-local mod_tag = " # "..color(cc.orange, "Filter").." > "
+local players_online = {}
 local max_caps = 16
 
-local filter = {
-	blacklist = {},
-	players_online = {},
-}
-local blacklist = filter.blacklist
-local players_online = filter.players_online
+local filter
 local blacklist_file = modpath.."/blacklist.lua"
+local whitelist_file = modpath.."/whitelist.lua"
+local blacklist_pattern
 
 
-local function load_blacklist()
-	local blacklist_items = minetest.deserialize(storage:get_string("blacklist"))
-
-	if type(blacklist_items) ~= "table" then
-		blacklist_items = dofile(blacklist_file)
-	
-		if type(blacklist_items) ~= "table" then
-			blacklist_items = {}
-		end
-	end
-    return blacklist_items
-end
-local blacklist_items = load_blacklist()
-
-local function save_blacklist_items()
-    if type(blacklist_items) == "table" then
-        storage:set_string("blacklist", minetest.serialize(blacklist_items))
+local function save_filter(filter)
+    if type(filter) ~= "table" then
+        return minetest.log("warning", "FilterPlus could not save filter lists")
     end
+    storage:set_string("filter", minetest.serialize(filter))
+    return filter
 end
-save_blacklist_items()
 
 
-local index_blacklist = function()
-	for i, listed_item in pairs(blacklist_items) do
-		local index = #blacklist_items[i]
-		local head = sub(blacklist_items[i], 1, 1)
-		local tail = sub(blacklist_items[i], -1)
+local function load_filter()
+    filter = minetest.deserialize(storage:get_string("filterplus"))
+    if type(filter) ~= "table" or #filter <= 0 then
+        filter = {
+            blacklist = {},
+            -- bpatterns = {},
+            whitelist = {}
+        }
+    end
+    return filter
+end
+load_filter()
 
-		if not blacklist[index] then
-			blacklist[index] = {}
+local blacklist = filter.blacklist
+local bpatterns = {} --filter.bpatterns
+local whitelist = filter.whitelist
+
+local function index_blacklist(word_array)
+    for i = 1, #word_array do
+        if not blacklist[word_array[i]] then
+            local pattern = "(.*"
+            for n = 1, #word_array[i] do
+                local l = word_array[i]:sub(n,n)
+                pattern = pattern .. "["..l..l:upper().."]+[%s%p]-"
+            end
+            bpatterns[#bpatterns+1] = pattern..".*)"
+            blacklist[word_array[i]] = #bpatterns
+        end
+    end
+    return save_filter(filter)
+end
+
+local function index_whitelist(word_array)
+    for i = 1, #word_array do
+        whitelist[word_array[i]] = word_array[i]
+    end
+    return save_filter(filter)
+end
+
+
+local function send_message(msg_block)
+	if msg_block[3] then
+		for name, player in pairs(players_online) do
+			local msg_color = white
+				if msg_block[3][name] then
+					msg_color = green
+				end
+			send_player(players_online[name].name, msg_block[1]..colorize(msg_color, msg_block[2]))
 		end
-
-		if not blacklist[index][tail] then
-			blacklist[index][tail] = {}
-		end
-
-		if not blacklist[index][tail][head] then
-			blacklist[index][tail][head] = {}
-		end
-
-		insert(blacklist[index][tail][head], listed_item)
+		return
 	end
-	return filter
+	return send_all(msg_block[1]..msg_block[2])
 end
-index_blacklist()
 
 
-local function player_tags(name)
-	local tags = {""}
-
+local function player_tags(msg_block)
+	local tags = {}
+    -- these could be indexed in table instead of hitting with every msg
 	if ranks_available then
-		local rank_title, rank_color = ranks.get_player_rank(name)
+		local rank_title, rank_color = ranks.get_player_rank(msg_block[1])
 		if rank_title then
-			tags[#tags+1] = "{"..color(rank_color, rank_title).."}"
+			tags[#tags+1] = "{"..colorize(rank_color, rank_title).."}"
 		end
 	end
 
 	if factions_available then
-		local faction_name, faction_color = factions.is_player_in(name)
+		local faction_name, faction_color = factions.is_player_in(msg_block[1])
 		if faction_name then
-			tags[#tags+1] = "["..color(faction_color, faction_name).."]"
+			tags[#tags+1] = "["..colorize(faction_color, faction_name).."]"
 		end
 	end
 
 	if exp_available then
-		tags[#tags+1] = "("..exp.get_player_exp(name)..")"
+		tags[#tags+1] = "("..exp.get_player_exp(msg_block[1])..")"
 	end
 
-	tags[#tags+1] = "<"..name.."> "
-
-	return concat(tags)
+    tags[#tags+1] = "«"..msg_block[1].."» "
+	msg_block[1] = concat(tags)
+	return send_message(msg_block)
 end
 
 
-local function send_message(message, sender, mentions)
-	local message = concat(message, " ")
-	local ptags = player_tags(sender)
-
-	if #message > max_caps then
-		message = lower(message)
-	end
-
-	if mentions then
-		for recipient,_ in pairs(players_online) do
-			local msg_color = cc.white
-				if mentions[recipient] then
-					msg_color = cc.green
-				end
-			send_player(recipient, ptags..color(msg_color, message))
-		end
-		return
-	end
-	return send_all(ptags..message)
+local function mentioned_players(msg_block)
+    gsub(msg_block[2], "[a-zA-Z0-9_-]+", function(word)
+        if players_online[word:lower()] then
+            if not msg_block[3] then
+                msg_block[3] = {}
+            end
+            msg_block[3][word] = players_online[word:lower()].name
+        end
+    end)
+    return player_tags(msg_block)
 end
 
 
-local function try_blacklist(try_word)
-	local word = gsub(lower(try_word), "[%p%c]", "")
+local function filter_message(msg_block)
+    if #msg_block[2] <= 1 then
+        return true
+    end
 
-	local index = #word
+    for i = 1, #bpatterns do
+        gsub(gsub(msg_block[2], "([^%w])", "%%%1"), bpatterns[i], function(context)
+            if not whitelist[context] then
+                msg_block[2] = gsub(msg_block[2], context, ("*"):rep(#context))
+            end
+        end)
+    end
 
-	if index <= 1 then
-		return try_word
-	end
+    if type(msg_block[1]) == "boolean" then
+        return msg_block[2]
+    end
 
-	local head = sub(word, 1, 1)
-	local tail = sub(word, -1)
-
-	if not blacklist[index] or
-			not blacklist[index][tail] or
-			not blacklist[index][tail][head] then
-		return try_word
-	end
-
-	local blacklist_keys = blacklist[index][tail] and blacklist[index][tail][head]
-
-	if blacklist_keys then
-		for n = 1, #blacklist_keys do
-			if word == blacklist_keys[n] then
-				word = rep("*", #blacklist_keys[n])
-				return word
-			end
-		end
-	end
-	return try_word
+    return mentioned_players(msg_block)
 end
 
 
 filterplus_api = {}
-function filterplus_api.check_word(word)
-local try_word = try_blacklist(word)
-	if try_word == word then
-		return false
+function filterplus_api.check_word(string)
+local filter_string = filter_message({true, string})
+	if filter_string == string then
+		return false -- not censored
 	end
-	return true, try_word
+	return true, filter_string
 end
 
 
-local function process_message(word_table, sender)
-	local mentions
-	local a = 1
-	local alpha = {}
-	local omega = word_table
-	local lambda = {}
-	
-	for o = 1, #word_table do
-		if alpha[a] and #omega[o] > 1 then
-			alpha[a] = nil 
-			a = a + 1
-		end
+--[[  -- need a function to do this instead
+local function remove_repeating(msg_block)
+    msg_block[2] = msg_block[2]:gsub("(%S)%S+(%1)", "")  -- remove repeating
+    return filter_message(msg_block)
+end
+]]
 
-		if #omega[o] > 1 then
-			lambda[a] = try_blacklist(omega[o])
-			a = a + 1
-		end
-
-		if #omega[o] == 1 then
-			alpha[a]  = (alpha[a] or "") .. omega[o]
-			lambda[a] =  alpha[a]
-		end
-
-		if alpha[a] then
-			lambda[a] = try_blacklist(alpha[a])
-		end
-
-		local word = gsub(word_table[o], "[^a-zA-Z0-9_-]*$", "")
-		for name,_ in pairs(players_online) do
-			if lower(word) == lower(name) then
-				if not mentions then
-					mentions = {}
-				end
-				mentions[name] = true
-			end
-		end
-	end
-	return send_message(lambda, sender, mentions)
+local function remove_hyperlink(message)
+    return message:gsub("h*t*t*p*s*:*/*/*%S+%.+%S+%.*%S%S%S?/*%S*%s?", "")  -- hyperlinks
 end
 
-local function remove_links(string)
-	return gsub(string, "h*t*t*p*s*:*/*/*%S+%.+%S+%.*%S%S%S?/*%S*%s?", "")
-end
-
-local function make_word_table(string)
-	local word_table
-
-	gsub(string, "%S+", function(word)
-		if word then
-			if not word_table then
-				word_table = {}
-			end
-			word_table[#word_table+1] = word
-		end
-	end)
-
-	return word_table
+local function remove_trailspace(message)
+    return message:gsub("%s+", " ")  -- trailing spaces
 end
 
 
 local on_chat_message = minetest.register_on_chat_message
 on_chat_message(function(name, message)
-
-	if players_online[name] >= time() then
-		return true, send_player(name, mod_tag..color(cc.red, "You are muted."))
+	if players_online[name:lower()].time >= (os.time()) then
+		return true, send_player(name, mtag..colorize(red, "You are muted."))
 	end
 
-	local string = message
-	string = remove_links(string)
-
-	local word_table = {}
-	word_table = make_word_table(string)
-
-	if word_table then
-		if #word_table <= 1 and #word_table[#word_table] == 1 then
-			return true
-		end
-		process_message(word_table, name)
-	end
+    message = remove_trailspace(message)
+    message = remove_hyperlink(message)
+    if #message < 2 then
+        return true
+    end
+        if #message > max_caps then
+            message = message:lower()
+        end
+    filter_message({name, message})
 
 	return true
 end)
 
 
-minetest.register_chatcommand("blacklist", {
+minetest.register_chatcommand("filter", {
     description = "Manage filter blacklist",
-	params = "<insert|remove> <word>",
+	params = "<blacklist>|<whitelist>|<delete>|<search> <string>",
     privs = {blacklist = true},
     func = function(name, params)
-		if minetest.check_player_privs(name, {blacklist = true}) then
-			params = params:split(" ")
-			local switch = params[1]
-			local word = params[2]
+        local list_type = params:match("^(blacklist)%s.+") or
+                params:match("^(whitelist)%s.+") or
+                params:match("^(delete)%s.+") or
+                params:match("^(search)%s.+")
 
-			if not word or not switch then
-				return send_player(name, mod_tag.."Usage: /blacklist <insert|remove> <word>")
-			end
+        if not list_type then
+            return send_player(name, mtag..
+            "Available filter commands: <whitelist>,<blacklist>,<delete>,<search>")
+        end
 
-			local try_word = try_blacklist(word) or "*"
+        local word = params:match("^"..list_type.."%s(.+)")
 
-			if switch == "insert" then
-				if try_word ~= word then
-					return send_player(name, mod_tag.."Word "..word.." already blacklisted")
-				end
-				blacklist_items[#blacklist_items+1] = word
+        if not word then
+            return send_player(name, mtag.."Usage: /"..command.." "..list_type.." <string>")
+        end
 
-			elseif switch == "remove" then
-				if try_word == word then
-					return send_player(name, mod_tag.."Word "..word.." not found in blacklist")
-				end
+        word = word:gsub("[%p%c]+", ""):gsub("%s+", " ")
 
-				for i = 1, #blacklist_items do
-					if blacklist_items[i] == word then
-						blacklist_items[i] = nil
-					end
-				end
+        if list_type == "search" then
+            for black,_ in pairs(blacklist) do
+                if word == black then
+                    send_player(name, mtag.."\""..word.."\"".." blacklisted.")
+                end
+            end
+            for white,_ in pairs(whitelist) do
+                if word == white then
+                    send_player(name, mtag.."\""..word.."\"".." whitelisted.")
+                end
+            end
+            return
+        end
 
-			else
-				return send_player(name, mod_tag.."please use 'insert' or 'remove'")
-			end
+        if list_type == "delete" then
+            if blacklist[word] then
+                table.remove(bpatterns, blacklist[word])
+                blacklist[word] = nil
+                index_blacklist(blacklist)
+            elseif whitelist[word] then
+                whitelist[word] = nil
+                index_whitelist(whitelist)
+            else
+                return send_player(name, mtag.."Word "..word.." not found in list")
+            end
+        end
 
-			save_blacklist_items()
-			blacklist = {}
-			index_blacklist()
-
-			return send_player(name, mod_tag.."Successful "..switch.." of: '"..word.."'")
-		end
+        if list_type == "whitelist" then
+            if blacklist[word] then
+                table.remove(bpatterns, blacklist[word])
+                blacklist[word] = nil
+            end
+            if whitelist[word] then
+                return send_player(name, mtag.."Word already whitelisted.")
+            end
+            index_whitelist({word})
+        elseif list_type == "blacklist" then
+            whitelist[word] = nil
+            if blacklist[word] then
+                return send_player(name, mtag.."Word already blacklisted.")
+            end
+            index_blacklist({word})
+        end
+        
+        return send_player(name, mtag.."Successful "..list_type.." of: '"..word.."'")
     end
 })
 
 
+local player_ip = minetest.get_player_ip
+
+local function sync_time(name, mute_time)
+    local mute_time = mute_time or time()
+    for players, data in pairs(players_online) do
+        if data.ip == players_online[name].ip then
+            if mute_time > time() then -- mute players ip assoc
+                data.time = mute_time
+            elseif mute_time == 1 then -- unmute assoc
+                data.time = time()
+            else -- join sync
+                players_online[name].time = data.time
+            end
+        end
+    end
+end
+
+
 minetest.register_chatcommand("mute", {
-	description = "Mutes a player for a set time in minutes",
+	description = "Mutes a player for time in minutes",
 	params = "<player> [<minutes>]",
 	privs = { mute = true },
-	func = function(name, params)
-		params = params:split(" ")
-		local playername = params[1]
-		local minutes = tonumber(params[2]) or 10
+	func = function(user, params)
+        params = {params:match("^([a-zA-Z0-9_-]+)%s*(%d*)")}
 
-		if not playername then
-			return false, "Usage: /mute <player> [<minutes>]"
+        if not params[1] then
+            return false, "Usage: /mute <player> [<minutes>]"
+        end
+
+		if not minetest.player_exists(params[1]) then
+			return send_player(user, mtag.."Player <"..params[1].."> does not exist.")
 		end
 
-		if not minetest.player_exists(playername) then
-			return send_player(name, mod_tag.."Player <"..playername.."> does not exist.")
-		end
+        local minutes = math.min((tonumber(params[2]) or 10), 120)
 
-		if minutes > 120 then
-			minutes = 120
-		elseif minutes < 1 then
-			minutes = 1
-		end
+		send_player(user, mtag.."Muted <"..params[1].."> muted for "..minutes.." minutes.")
+		send_player(params[1], mtag.."You are muted for "..colorize(red, minutes).." minutes.")
 
-		local seconds = (minutes * 60)
+		minetest.log("action","[Filter] [Report]: "..user.." muted "..params[1].." for "..minutes.." minutes.")
 
-		local mute_time = time() + seconds
-
-		players_online[playername] = mute_time
-
-		send_player(name, mod_tag.."Muted <"..playername.."> muted for "..minutes.." minutes.")
-		send_player(playername, mod_tag.."You are muted for "..color(cc.red, minutes).." minutes.")
+        return sync_time(params[1]:lower(), time() + minutes * 60)
 	end,
 })
+
 
 minetest.register_chatcommand("unmute", {
 	description = "Remove player mute",
 	params = "<player>",
 	privs = { mute = true },
-	func = function(name, param)
-		local playername = param:match("([a-zA-Z0-9_-]+)%s*.*")
+	func = function(user, param)
+		local playername = param:match("([a-zA-Z0-9_-]+)")
 
 		if not playername then
 			return false, "Usage: /unmute <player>"
 		end
 
-		if players_online[playername] and players_online[playername] >= time() then
-			players_online[playername] = time()
-			send_player(name, mod_tag..playername.." mute removed.")
-			send_player(playername, mod_tag.."You are not muted.")
-		else
-			return send_player(name, mod_tag..playername.." is not currently muted.")
-		end
+        local name = playername:lower()
+
+		if players_online[name] and players_online[name].time <= time() then
+			return send_player(user, mtag.."<"..playername.."> is not currently muted.")
+        end
+        
+        send_player(user, mtag.."<"..playername.."> mute removed.")
+        send_player(name, mtag.."You are not muted.")
+        
+        return sync_time(name, 1)
 	end,
 })
 
 
+local function add_player_online(player)
+    if not player:is_player() then
+        return
+    end
+    local name = player:get_player_name()
+
+	if not players_online[name] or players_online[name].time < time() then
+        players_online[name:lower()] = {
+            name = name,
+            ip = player_ip(name),
+            time = time()
+        }
+	end
+    return name:lower()
+end
+
 minetest.register_on_joinplayer(function(player)
-	local name = player and player:get_player_name()
-	if not name then return end
-
-	if not players_online[name] then
-		players_online[name] = time()
-	else
-		if players_online[name] < time() then
-			players_online[name] = time()
-		end
-	end
-end)
-
-minetest.register_on_leaveplayer(function(player)
-	local name = player and player:get_player_name()
-	if not name then return end
-
-	if players_online[name] and players_online[name] < time() then
-		players_online[name] = nil
-	end
+	return sync_time(add_player_online(player))
 end)
 
 
 local player_by_name = minetest.get_player_by_name
 local function expunge_daemon()
-	for name, timestamp in pairs(players_online) do
-		if timestamp < time() then
-			if not player_by_name(name) then
-				players_online[name] = nil
+	for name, player in pairs(players_online) do
+        if player.time < time() then
+			if not player_by_name(player.name) then
+				players_online[name:lower()] = nil
 			end
 		end
 	end
-	minetest.after(600, expunge_daemon)
+	minetest.after(423, expunge_daemon)
 end
-minetest.after(600, expunge_daemon)
+minetest.after(532, expunge_daemon)
+
+
+minetest.register_on_mods_loaded(function()
+    if #blacklist <= 0 then
+        index_blacklist(dofile(blacklist_file))
+    end
+
+    if #whitelist <= 0 then
+        index_whitelist(dofile(whitelist_file))
+    end
+end)
