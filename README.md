@@ -64,9 +64,14 @@ The minetest.conf settings:
 Tag order is: `{Rank}[Faction](Exp)<PlayerName> message`
 ##
 
+To-Do
+-----
+- [ ] Export function from mod_storage to file
+- [ ] Ignore player function
+
 File Versions
 -------------
-`init.lua` (0.1.2) For Minetest
-`cli_bench.lua` (0.0.1) Portable CLI (Lua 5.3.6)
-`blacklist.lua` (v6) 246 words Blacklisted
-`whitelist.lua` (v1) 565258 words Whitelisted
+- `init.lua` (0.1.2) For Minetest
+- `cli_bench.lua` (0.0.1) Portable CLI (Lua 5.3.6)
+- `blacklist.lua` (v6) 246 words Blacklisted
+- `whitelist.lua` (v1) 565258 words Whitelisted
