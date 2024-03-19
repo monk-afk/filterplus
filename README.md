@@ -1,49 +1,72 @@
 FilterPlus
 ----------
-Chat filter and censor, mute command, player tags, and mention highlight.
+Chat message word filter censor and API. Includes, mute player, mod tag support, and mention highlight.
 
 Copyright (c) 2023 monk
 
-Details
--------
-- Chat messages filtered using pattern, able to filter word variants and mutations.
-- Positive patterns are checked against whitelist before being censored.
-- Censored words are replaced with asterisk(*).
-- Removes URL links.
-- Name tagging, includes ranks, exp, and faction support.
-- Players mentioned sends green text.
-- No caps for messages over 16 characters.
+Filter
+------
+Match patterns constructed from blacklisted words, and censor the positive match if the contextual word or words are not whitelisted. For example,
 
-Includes API for other mods to check words against blacklist. Will return true with the word censored by asterisk. Works for single or multiple word strings.
+- "`scunthorpe`" is whitelisted, and will not be censored.
+- From "`scu nt horpe`", neither `scu` nor `nt` are whitelisted, and returns with "`*** ** horpe`".
+- If `scu` is whitelisted, and `nt` is not, the string returns `scu ** horpe`
 
-Filtering pattern is: `(.*[fF]+[%s%p]-[uU]+[%s%p]-[cC]+[%s%p]-[kK]+[%s%p]-.*)`
-In english: Match anything before the first letter, and spaces/punctuation between each letter, and everything after the last letter.
+Plus
+----
+- API returns string and boolean, false if not censored.
+- Expandable support for player "chat tags"
+- Sends green message to players mentioned by name
+- Lowers caps in messages over 16 characters
+- Removes URL patterns
+- Mute time applied to players' IP
+- Manage filter lists in-game with chat commands
 
 Chat commands
 -------------
+- Manage mod_storage filter lists (requires `blacklist` priv)
+```md
+/filter <blacklist>|<whitelist>|<delete>|<search> <string>
+```
+
 - Mute/Unmute player(s) (requires `mute` priv), by associated IP
   - Default is 10 minutes, two hour max
 ```md
 /mute <playername> [<minutes>]
 /unmute <playername>
 ```
-- Manage mod_storage filter lists (requires `blacklist` priv)
-```md
-/filter <blacklist>|<whitelist>|<delete>|<search> <string>
+
+Optional Depends for Message Tags
+---------------------------------
+Default no-tag format is: `<PlayerName>`.
+
+Original release supports, if available: Ranks, Factions, Exp.
+
+Add desired tags with optional color from external mods
+```lua
+    if mod_available then
+        local tag_title, tag_color = mod.get_player_tag(msg_block[1])
+        if tag_title then
+            if not tag_color then
+                tag_color = red
+            end
+            tags[#tags+1] = "{"..colorize(tag_color, tag_title).."}"
+        end
+    end
 ```
 
-Message Tags
-------------
-Message tag default format is: `<PlayerName>`.
 
-Supported tags from mods if available: Ranks, Factions, Exp.
-
-The minetest.conf setting must be true, and pass required values.
-
+The minetest.conf settings:
 - `filterplus_ranks`: `{Rank}` requires a string and ColorString
 - `filterplus_factions`: `[Faction]` requires a string and ColorString 
 - `filterplus_exp`: `(Exp)` requires integer or string
 
 Tag order is: `{Rank}[Faction](Exp)<PlayerName> message`
 ##
-Current Version **`0.1.1`**
+
+File Versions
+-------------
+`init.lua` (0.1.2) For Minetest
+`cli_bench.lua` (0.0.1) Portable CLI (Lua 5.3.6)
+`blacklist.lua` (v6) 246 words Blacklisted
+`whitelist.lua` (v1) 565258 words Whitelisted
