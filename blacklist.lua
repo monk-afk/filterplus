@@ -1,4 +1,6 @@
-  --==[[  blacklist.lua - v5  ]]==--
+    --==[[       FilterPlus       ]]==--
+    --==[[   blacklist.lua - v6   ]]==--
+    --==[[   MIT (c) 2023  monk   ]]==--
 return {
     "acrotomophilia",
     "anal",
@@ -18,7 +20,6 @@ return {
     "bastard",
     "bastardo",
     "bastinado",
-    "bbw",
     "bdsm",
     "beaner",
     "beastiality",
@@ -63,7 +64,7 @@ return {
     "cumshots",
     "cunnilingus",
     "cunt",
-    "d1ck",
+    "d1ck",  -- Edit init.lua to remove numbers instead of adding them to blacklist
     "darkie",
     "dck",
     "deepthroat",
@@ -81,7 +82,6 @@ return {
     "dommes",
     "dvda",
     "dyke",
-    "ecchi",
     "ejaculation",
     "erotic",
     "erotism",
@@ -98,11 +98,12 @@ return {
     "fingerbang",
     "fingering",
     "fisting",
-    "fk",
+    "fkn",
+    "fker",
     "footjob",
     "frotting",
-    "fuc",
     "fuck",
+    "fuc",
     "fudgepacker",
     "fuk",
     "futanari",
@@ -140,7 +141,6 @@ return {
     "lesbo",
     "lgb",
     "livesex",
-    "lolita",
     "lovemaking",
     "masturbat",
     "milf",
@@ -215,10 +215,8 @@ return {
     "smut",
     "sodomize",
     "sodomy",
-    "spic",
     "splooge",
     "spooge",
-    "spunk",
     "strapon",
     "strappado",
     "swastik",
