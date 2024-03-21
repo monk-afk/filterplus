@@ -1,5 +1,5 @@
     --==[[       FilterPlus       ]]==--
-    --==[[     init.lua   0.1.2   ]]==--
+    --==[[     init.lua   0.1.3   ]]==--
     --==[[   MIT (c) 2023  monk   ]]==--
 minetest.register_privilege("mute", "Grants usage of mute command.")
 minetest.register_privilege("blacklist", "Grants Filter-list management.")
@@ -155,7 +155,8 @@ local function filter_message(msg_block)
             context:gsub("([%w]+)", function(word)
 
                 if not whitelist[gsub(word:lower(), "[%p%d]+", "")] then
-                    msg_block[2] = gsub(msg_block[2], context, nice_words[math.random(1, #nice_words)]) --("*"):rep(#word))
+                    msg_block[2] = gsub(msg_block[2], context, nice_words[math.random(1, #nice_words)])
+                    -- msg_block[2] = gsub(msg_block[2], context, ("*"):rep(#word))
                     minetest.log("action", "[FilterPlus]: Blacklisted ["..context.."]")
                 else
                     minetest.log("action", "[FilterPlus]: Whitelisted ["..context.."]")
