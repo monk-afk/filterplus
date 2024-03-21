@@ -4,7 +4,7 @@
 minetest.register_privilege("mute", "Grants usage of mute command.")
 minetest.register_privilege("blacklist", "Grants Filter-list management.")
 
-local modpath = minetest.get_modpath(minetest.get_current_modname())
+local modpath = minetest.get_modpath(minetest.get_current_modname()).."/"
 local storage = minetest.get_mod_storage()
 
 local factions_available = minetest.settings:get_bool("filterplus_factions") and
@@ -17,11 +17,12 @@ local exp_available = minetest.settings:get_bool("filterplus_exp") and
 local send_player = minetest.chat_send_player
 local send_all = minetest.chat_send_all
 local colorize = minetest.colorize
-local white = "#FFFFFF"
-local orange = "#DEAD23"
-local red = "#C30023"
-local green = "#23DD32"
-local mtag = "# "..colorize(orange, "FilterPlus").." > "
+local colorzen = modzen.color
+local orange = colorzen.orange
+local red = colorzen.red
+local green = colorzen.green
+local white = colorzen.white
+local mtag = colorzen:mtag("Filter")
 
 local gsub   = string.gsub
 local lower  = string.lower
@@ -32,8 +33,8 @@ local players_online = {}
 local max_caps = 16
 
 local filter
-local blacklist_file = modpath.."/blacklist.lua"
-local whitelist_file = modpath.."/whitelist.lua"
+local blacklist_file = modpath.."blacklist.lua"
+local whitelist_file = modpath.."whitelist.lua"
 
 
 local function load_filter()
@@ -63,14 +64,9 @@ local bpatterns = {}
 local whitelist = filter.whitelist
 
 local function index_blacklist(word_array)
+    print(#word_array.." words Blacklisted")
     for i = 1, #word_array do
         if not blacklist[word_array[i]] then
-            -- local pattern = "(%S-)%s*("
-            -- for n = 1, #word_array[i] do
-            --     local l = word_array[i]:sub(n,n)
-            --     pattern = pattern .. "["..l..l:upper().."]+[%s%p]-"
-            -- end
-            -- bpatterns[#bpatterns+1] = pattern..")%s*(%S-)"
             local pattern = "(%S*"
             for n = 1, #word_array[i] do
                 local l = word_array[i]:sub(n,n)
@@ -80,14 +76,14 @@ local function index_blacklist(word_array)
             blacklist[word_array[i]] = #bpatterns
         end
     end
-    return save_filter(filter)
+    return true
 end
 
 local function index_whitelist(word_array)
     for i = 1, #word_array do
         whitelist[word_array[i]] = word_array[i]
     end
-    return save_filter(filter)
+    return filter
 end
 
 
@@ -146,18 +142,23 @@ local function mentioned_players(msg_block)
 end
 
 
+local nice_words = dofile(modpath.."nice_words.lua")
+
 local function filter_message(msg_block)
+
     if #msg_block[2] <= 1 then
         return true
     end
 
     for i = 1, #bpatterns do
-        gsub(gsub(msg_block[2], "([%-])", "%%%1"), bpatterns[i], function(...)
-            -- local context = ...
-            (...):gsub("(%w+)", function(word)
-                if not whitelist[word:lower()] then
-                    msg_block[2] = gsub(msg_block[2], word, ("*"):rep(#word))
-                    -- print(context..": "..msg_block[2])
+        gsub(gsub(msg_block[2], "([%-])", "%%%1"), bpatterns[i], function(context)
+            context:gsub("([%w]+)", function(word)
+
+                if not whitelist[gsub(word:lower(), "[%p%d]+", "")] then
+                    msg_block[2] = gsub(msg_block[2], context, nice_words[math.random(1, #nice_words)]) --("*"):rep(#word))
+                    minetest.log("action", "[FilterPlus]: Blacklisted ["..context.."]")
+                else
+                    minetest.log("action", "[FilterPlus]: Whitelisted ["..context.."]")
                 end
             end)
         end)
@@ -201,7 +202,7 @@ local on_chat_message = minetest.register_on_chat_message
 on_chat_message(function(name, message)
     if not name then
         name = "monk"
-    end  -- for minetestserver terminal
+    end
     
     if players_online[name:lower()].time >= (os.time()) then
         return true, send_player(name, mtag..colorize(red, "You are muted."))
@@ -243,7 +244,7 @@ minetest.register_chatcommand("filter", {
             return send_player(name, mtag.."Usage: /"..command.." "..list_type.." <string>")
         end
 
-        word = word:gsub("[%p%c]+", ""):gsub("%s+", " ")
+        word = word:gsub("[%s%c]+", ""):gsub("%s+", " ")
 
         if list_type == "search" then
             local flag
@@ -386,15 +387,6 @@ local function add_player_online(player)
     return name:lower()
 end
 
--- minetest.register_chatcommand("filter_dump", {
--- 	description = "monk",
--- 	params = "<monk>",
--- 	privs = { server = true },
--- 	func = function(user, param)
---     print(dump(players_online))
---     end
--- })
-
 minetest.register_on_joinplayer(function(player)
     return sync_time(add_player_online(player))
 end)
@@ -403,9 +395,11 @@ local int = math.random(500,800)  -- Randomized to avoid sequencing mod function
 local player_by_name = minetest.get_player_by_name
 local function purge_offline()
     for name, player in pairs(players_online) do
-        if not player_by_name(player.name) then
-            if player.time < time() then
-                players_online[name:lower()] = nil
+        if name ~= "monk" then
+            if not player_by_name(player.name) then
+                if player.time < time() then
+                    players_online[name:lower()] = nil
+                end
             end
         end
     end
@@ -422,11 +416,45 @@ minetest.register_on_mods_loaded(function()
     if #whitelist <= 0 then
         index_whitelist(dofile(whitelist_file))
     end
-
-    -- for minetestserver terminal
-    players_online["monk"] = {
-        name = "monk",
-        ip = "localhost",
-        time = time()
-    }
+        players_online["monk"] = {
+            name = "monk",
+            ip = "localhost",
+            time = time()
+        }
 end)
+
+minetest.register_on_shutdown(function() 
+    save_filter(filter)
+end)
+
+minetest.register_chatcommand("save_filter", {
+	description = "Save Filter Lists Manually",
+	params = "",
+	privs = {server = true},
+	func = function(name)
+        save_filter(filter)
+    end,
+})
+
+--==[[ ADD MONK TO CHAT ]]==--
+minetest.register_chatcommand("monk", {
+	description = "Add monk to chat",
+	params = "<announce>",
+	privs = {server = true},
+	func = function(name, param)
+        if param and type(param) == "boolean" then
+            if param == true then
+minetest.send_join_message("monk")
+            else
+minetest.send_leave_message("monk", false)
+            end
+        end
+
+        players_online["monk"] = {
+            name = "monk",
+            ip = "localhost",
+            time = time()
+        }
+        send_player(name, mtag.."Welcome to the chat, monk")
+    end,
+})

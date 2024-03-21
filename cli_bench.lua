@@ -1,7 +1,7 @@
     --==[[       FilterPlus       ]]==--
     --==[[  cli_bench.lua  0.0.1  ]]==--
     --==[[   MIT (c) 2023  monk   ]]==--
-
+dofile("dump.lua")
     --[[
         For use with Lua interactive in terminal,
                 $ lua fpcli.lua
@@ -55,22 +55,24 @@ local function index_whitelist(word_array)
     return print("Loaded Whitelist")
 end
 
+local nice_words = dofile("nice_words.lua")
 local matches = 0
 local function filter_message(msg_block)
     if #msg_block[2] <= 1 then
         return true
     end
-
     for i = 1, #bpatterns do
-        gsub(gsub(msg_block[2], "([%-])", "%%%1"), bpatterns[i], function(...)
-            local context = ...
-            (...):gsub("(%w+)", function(word)
-                if not whitelist[word:lower()] then
-                    msg_block[2] = gsub(msg_block[2], word, ("*"):rep(#word))
+        gsub(gsub(msg_block[2], "([%-])", "%%%1"), bpatterns[i], function(context)
+            context:gsub("([%w]+)", function(word)
+
+                if not whitelist[gsub(word:lower(), "[%p%d]+", "")] then
+                    msg_block[2] = gsub(msg_block[2], context, nice_words[math.random(1, #nice_words)]) --("*"):rep(#word))
                     matches = matches + 1
-                    print("Censored: "..context..": "..msg_block[2])
+                    print("Censored: "..word..": "..msg_block[2])
+print(context, word)
+                    -- minetest.log("action", "[Report]: Filtered: ["..context.."] In message: "..msg_block[2])
                 else
-                    print("Whitelisted: "..context..": "..msg_block[2])
+                    print("Whitelisted: "..word..": "..msg_block[2])
                 end
             end)
         end)
