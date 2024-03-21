@@ -1,5 +1,5 @@
     --==[[       FilterPlus       ]]==--
-    --==[[   blacklist.lua - v6   ]]==--
+    --==[[   blacklist.lua  v6   ]]==--
     --==[[   MIT (c) 2023  monk   ]]==--
 return {
     "acrotomophilia",
@@ -64,7 +64,7 @@ return {
     "cumshots",
     "cunnilingus",
     "cunt",
-    "d1ck",  -- Edit init.lua to remove numbers instead of adding them to blacklist
+    "d1ck",
     "darkie",
     "dck",
     "deepthroat",

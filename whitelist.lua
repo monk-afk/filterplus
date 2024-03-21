@@ -1,5 +1,5 @@
     --==[[       FilterPlus       ]]==--
-    --==[[   whitelist.lua   v1   ]]==--
+    --==[[   whitelist.lua  001   ]]==--
     --==[[   MIT (c) 2023  monk   ]]==--
 
 -- Note: Still Contains Profanities
@@ -26489,6 +26489,7 @@ return {
     "anubody",
     "anucleate",
     "anucleated",
+    "anudeep",
     "anudder",
     "anuestra",
     "anuestro",
@@ -444723,11 +444724,7 @@ return {
     "shiin",
     "shiirt",
     "shiism",
-    "shiit",
     "shiitake",
-    "shiite",
-    "shiitic",
-    "shiits",
     "shiivay",
     "shijakae",
     "shijakkae",
