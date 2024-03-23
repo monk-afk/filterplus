@@ -7,22 +7,20 @@ minetest.register_privilege("blacklist", "Grants Filter-list management.")
 local modpath = minetest.get_modpath(minetest.get_current_modname()).."/"
 local storage = minetest.get_mod_storage()
 
-local factions_available = minetest.settings:get_bool("filterplus_factions") and
-        minetest.global_exists("factions") == true
 local ranks_available = minetest.settings:get_bool("filterplus_ranks") and
         minetest.global_exists("ranks") == true
 local exp_available = minetest.settings:get_bool("filterplus_exp") and
         minetest.global_exists("exp") == true
 
 local send_player = minetest.chat_send_player
-local send_all = minetest.chat_send_all
-local colorize = minetest.colorize
-local colorzen = modzen.color
-local orange = colorzen.orange
-local red = colorzen.red
-local green = colorzen.green
-local white = colorzen.white
-local mtag = colorzen:mtag("Filter")
+local send_all    = minetest.chat_send_all
+local colorize    = minetest.colorize
+
+local orange = "#DDDD00"
+local green  = "#00EE00"
+local white  = "#FFFFFF"
+local red    = "#FF0000"
+local mtag   = "Filter"
 
 local gsub   = string.gsub
 local lower  = string.lower
@@ -112,13 +110,6 @@ local function player_tags(msg_block)
         end
     end
 
-    if factions_available then
-        local faction_name, faction_color = factions.is_player_in(msg_block[1])
-        if faction_name then
-            tags[#tags+1] = "["..colorize((faction_color or white), faction_name).."]"
-        end
-    end
-
     if exp_available then
         tags[#tags+1] = "("..exp.get_player_exp(msg_block[1])..")"
     end
@@ -202,7 +193,7 @@ end
 local on_chat_message = minetest.register_on_chat_message
 on_chat_message(function(name, message)
     if not name then
-        name = "monk"
+        return true
     end
     
     if players_online[name:lower()].time >= (os.time()) then
@@ -372,10 +363,10 @@ minetest.register_chatcommand("unmute", {
 
 
 local function add_player_online(player)
-
     if not player:is_player() then
         return
     end
+
     local name = player:get_player_name()
 
     if not players_online[name] or players_online[name].time < time() then
@@ -392,15 +383,14 @@ minetest.register_on_joinplayer(function(player)
     return sync_time(add_player_online(player))
 end)
 
-local int = math.random(500,800)  -- Randomized to avoid sequencing mod functions
+
+local int = math.random(500,800)  -- Randomized to avoid sequencing
 local player_by_name = minetest.get_player_by_name
 local function purge_offline()
     for name, player in pairs(players_online) do
-        if name ~= "monk" then
-            if not player_by_name(player.name) then
-                if player.time < time() then
-                    players_online[name:lower()] = nil
-                end
+        if not player_by_name(player.name) then
+            if player.time < time() then
+                players_online[name:lower()] = nil
             end
         end
     end
@@ -417,16 +407,12 @@ minetest.register_on_mods_loaded(function()
     if #whitelist <= 0 then
         index_whitelist(dofile(whitelist_file))
     end
-        players_online["monk"] = {
-            name = "monk",
-            ip = "localhost",
-            time = time()
-        }
 end)
 
 minetest.register_on_shutdown(function() 
     save_filter(filter)
 end)
+
 
 minetest.register_chatcommand("save_filter", {
 	description = "Save Filter Lists Manually",
@@ -434,28 +420,5 @@ minetest.register_chatcommand("save_filter", {
 	privs = {server = true},
 	func = function(name)
         save_filter(filter)
-    end,
-})
-
---==[[ ADD MONK TO CHAT ]]==--
-minetest.register_chatcommand("monk", {
-	description = "Add monk to chat",
-	params = "<announce>",
-	privs = {server = true},
-	func = function(name, param)
-        if param and type(param) == "boolean" then
-            if param == true then
-minetest.send_join_message("monk")
-            else
-minetest.send_leave_message("monk", false)
-            end
-        end
-
-        players_online["monk"] = {
-            name = "monk",
-            ip = "localhost",
-            time = time()
-        }
-        send_player(name, mtag.."Welcome to the chat, monk")
     end,
 })
