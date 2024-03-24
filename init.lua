@@ -141,16 +141,19 @@ local function filter_message(msg_block)
         return true
     end
 
+    local log = {"[FilterPlus] "..msg_block[2]}
     for i = 1, #bpatterns do
         gsub(gsub(msg_block[2], "([%-])", "%%%1"), bpatterns[i], function(context)
             context:gsub("([%w]+)", function(word)
-
+            log[#log+1] = "  Patterned: "..gsub(log[1], context, "["..context.."]")
+            
                 if not whitelist[gsub(word:lower(), "[%p%d]+", "")] then
-                    msg_block[2] = gsub(msg_block[2], context, nice_words[math.random(1, #nice_words)])
-                    -- msg_block[2] = gsub(msg_block[2], context, ("*"):rep(#word))
-                    minetest.log("action", "[FilterPlus]: Blacklisted ["..context.."]")
+                    -- msg_block[2] = gsub(msg_block[2], context, nice_words[math.random(1, #nice_words)])
+                    msg_block[2] = gsub(msg_block[2], context, ("*"):rep(#word))
+
+                    log[#log+1] = "  Not Whitelisted: ["..word.."]"
                 else
-                    minetest.log("action", "[FilterPlus]: Whitelisted ["..context.."]")
+                    log[#log+1] = "    Whitelisted: ["..word.."]"
                 end
             end)
         end)
@@ -158,6 +161,13 @@ local function filter_message(msg_block)
 
     if type(msg_block[1]) == "boolean" then
         return msg_block[2]
+    end
+
+    if #log > 1 then
+        for i = 1,#log do
+            -- print(log[i])
+        return minetest.log("action", table.concat(msg_block, "\\n"))
+        end
     end
 
     return mentioned_players(msg_block)
@@ -236,7 +246,7 @@ minetest.register_chatcommand("filter", {
             return send_player(name, mtag.."Usage: /"..command.." "..list_type.." <string>")
         end
 
-        word = word:gsub("[%s%c]+", ""):gsub("%s+", " ")
+        word = word:gsub("[%p%c%d]+", ""):gsub("%s+", " ")
 
         if list_type == "search" then
             local flag
