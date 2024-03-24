@@ -133,27 +133,20 @@ local function mentioned_players(msg_block)
 end
 
 
-local nice_words = dofile(modpath.."nice_words.lua")
-
 local function filter_message(msg_block)
-
     if #msg_block[2] <= 1 then
         return true
     end
 
-    local log = {"[FilterPlus] "..msg_block[2]}
     for i = 1, #bpatterns do
         gsub(gsub(msg_block[2], "([%-])", "%%%1"), bpatterns[i], function(context)
             context:gsub("([%w]+)", function(word)
-            log[#log+1] = "  Patterned: "..gsub(log[1], context, "["..context.."]")
-            
-                if not whitelist[gsub(word:lower(), "[%p%d]+", "")] then
-                    -- msg_block[2] = gsub(msg_block[2], context, nice_words[math.random(1, #nice_words)])
-                    msg_block[2] = gsub(msg_block[2], context, ("*"):rep(#word))
 
-                    log[#log+1] = "  Not Whitelisted: ["..word.."]"
+                if not whitelist[gsub(word:lower(), "[%p%c%d]+", "")] then
+                    msg_block[2] = gsub(msg_block[2], context, ("*"):rep(#word))
+                    minetest.log("action", "[FilterPlus]: Blacklisted ["..word.."]")
                 else
-                    log[#log+1] = "    Whitelisted: ["..word.."]"
+                    minetest.log("action", "[FilterPlus]: Whitelisted ["..word.."]")
                 end
             end)
         end)
@@ -163,16 +156,8 @@ local function filter_message(msg_block)
         return msg_block[2]
     end
 
-    if #log > 1 then
-        for i = 1,#log do
-            -- print(log[i])
-        return minetest.log("action", table.concat(msg_block, "\\n"))
-        end
-    end
-
     return mentioned_players(msg_block)
 end
-
 
 filterplus_api = {}
 function filterplus_api.check_word(string)
