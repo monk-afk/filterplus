@@ -1,5 +1,5 @@
     --==[[       FilterPlus       ]]==--
-    --==[[   blacklist.lua  v6   ]]==--
+    --==[[   blacklist.lua  v6    ]]==--
     --==[[   MIT (c) 2023  monk   ]]==--
 return {
     "acrotomophilia",

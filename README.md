@@ -46,4 +46,4 @@ The minetest.conf setting must be true, and pass required values.
 
 Tag order is: `{Rank}[Faction](Exp)<PlayerName> message`
 ##
-Current Version **`0.1.1`**
+Current Version **`0.1.3`**
