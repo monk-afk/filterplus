@@ -1,5 +1,5 @@
     --==[[       FilterPlus       ]]==--
-    --==[[   blacklist.lua  v6    ]]==--
+    --==[[   blacklist.lua  007   ]]==--
     --==[[   MIT (c) 2023  monk   ]]==--
 return {
     "acrotomophilia",
@@ -29,6 +29,7 @@ return {
     "birdlock",
     "bish",
     "bitch",
+    "bĩtch",
     "bitches",
     "blowjob",
     "blumpkin",
@@ -103,12 +104,15 @@ return {
     "footjob",
     "frotting",
     "fuck",
+    "fück",
     "fuc",
     "fudgepacker",
     "fuk",
     "futanari",
     "fvck",
+    "fxck",
     "gangbang",
+    "gay",
     "genitals",
     "glowjob",
     "goatcx",
@@ -136,10 +140,12 @@ return {
     "kinky",
     "knobbing",
     "lbg",
+    "lbgtq",
     "lesbi",
     "lesbian",
     "lesbo",
     "lgb",
+    "lgbtq",
     "livesex",
     "lovemaking",
     "masturbat",
@@ -181,6 +187,7 @@ return {
     "pussi",
     "pussy",
     "puta",
+    "puto",
     "pvtit",
     "pvto",
     "queaf",
@@ -248,4 +255,5 @@ return {
     "yaoi",
     "yiffy",
     "zoophilia",
+    "perra",
 }
