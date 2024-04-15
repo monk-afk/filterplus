@@ -14,15 +14,15 @@ Details
 - Players mentioned sends green text.
 - No caps for messages over 16 characters.
 
-Includes API for other mods to check words against blacklist. Will return true with the word censored by asterisk. Works for single or multiple word strings.
+Includes API for other mods to check words against blacklist. Will return true with the word censored by asterisk.
 
 Filtering pattern is: `(.*[fF]+[%s%p]-[uU]+[%s%p]-[cC]+[%s%p]-[kK]+[%s%p]-.*)`
 In english: Match anything before the first letter, and spaces/punctuation between each letter, and everything after the last letter.
 
 Chat commands
 -------------
-- Mute/Unmute player(s) (requires `mute` priv), by associated IP
-  - Default is 10 minutes, two hour max
+- Mute/Unmute player(s) by associated IP (requires `mute` priv)
+  - Default is 2 minutes, two hour max
 ```md
 /mute <playername> [<minutes>]
 /unmute <playername>
@@ -46,4 +46,4 @@ The minetest.conf setting must be true, and pass required values.
 
 Tag order is: `{Rank}[Faction](Exp)<PlayerName> message`
 ##
-Current Version **`0.1.3`**
+Current Version **`0.1.4`**
