@@ -1,5 +1,5 @@
     --==[[       FilterPlus       ]]==--
-    --==[[     init.lua   0.1.3   ]]==--
+    --==[[     init.lua   0.1.4   ]]==--
     --==[[   MIT (c) 2023  monk   ]]==--
 minetest.register_privilege("mute", "Grants usage of mute command.")
 minetest.register_privilege("blacklist", "Grants Filter-list management.")
@@ -7,6 +7,8 @@ minetest.register_privilege("blacklist", "Grants Filter-list management.")
 local modpath = minetest.get_modpath(minetest.get_current_modname()).."/"
 local storage = minetest.get_mod_storage()
 
+local factions_available = minetest.settings:get_bool("filterplus_factions") and
+        minetest.global_exists("factions") == true
 local ranks_available = minetest.settings:get_bool("filterplus_ranks") and
         minetest.global_exists("ranks") == true
 local exp_available = minetest.settings:get_bool("filterplus_exp") and
@@ -20,7 +22,7 @@ local orange = "#DDDD00"
 local green  = "#00EE00"
 local white  = "#FFFFFF"
 local red    = "#FF0000"
-local mtag   = "Filter"
+local mtag   = "#[Filter] "
 
 local gsub   = string.gsub
 local lower  = string.lower
@@ -30,19 +32,18 @@ local time   = os.time
 local players_online = {}
 local max_caps = 16
 
-local filter
 local blacklist_file = modpath.."blacklist.lua"
 local whitelist_file = modpath.."whitelist.lua"
 
-
+local filter
 local function load_filter()
-    filter = minetest.deserialize(storage:get_string("filterplus"))
-    if type(filter) ~= "table" or #filter <= 0 then
-        filter = {
-            blacklist = {},
-            whitelist = {}
-        }
-    end
+  filter = minetest.deserialize(storage:get_string("filterplus"))
+  if type(filter) ~= "table" or #filter <= 0 then
+      filter = {
+          blacklist = {},
+          whitelist = {}
+      }
+  end
     return filter
 end
 load_filter()
@@ -62,7 +63,6 @@ local bpatterns = {}
 local whitelist = filter.whitelist
 
 local function index_blacklist(word_array)
-    print(#word_array.." words Blacklisted")
     for i = 1, #word_array do
         if not blacklist[word_array[i]] then
             local pattern = "(%S*"
@@ -85,51 +85,59 @@ local function index_whitelist(word_array)
 end
 
 
-local function send_message(msg_block)
-    if msg_block[3] then
-        for name, player in pairs(players_online) do
-            local msg_color = white
-                if msg_block[3][name] then
-                    msg_color = green
-                end
-            send_player(players_online[name].name, msg_block[1]..colorize(msg_color, msg_block[2]))
-        end
-        return
-    end
-    return send_all(msg_block[1]..msg_block[2])
-end
-
-
-local function player_tags(msg_block)
+local function player_tags(name)
     local tags = {}
     -- these could be indexed in table instead of hitting with every msg
     if ranks_available then
-        local rank_title, rank_color = ranks.get_player_rank(msg_block[1])
+        local rank_title, rank_color = ranks.get_player_rank(name)
         if rank_title then
             tags[#tags+1] = "{"..colorize((rank_color or white), rank_title).."}"
         end
     end
 
-    if exp_available then
-        tags[#tags+1] = "("..exp.get_player_exp(msg_block[1])..")"
+    if factions_available then
+        local faction_name, faction_color = factions.is_player_in(name)
+        if faction_name then
+            tags[#tags+1] = "["..colorize((faction_color or white), faction_name).."]"
+        end
     end
 
-    tags[#tags+1] = "«"..msg_block[1].."» "
-    msg_block[1] = concat(tags)
-    return send_message(msg_block)
+    if exp_available then
+        tags[#tags+1] = "("..exp.get_player_exp(name)..")"
+    end
+
+    tags[#tags+1] = "«"..name.."» "
+    return concat(tags)
+end
+
+
+local function send_message(msg_block)
+    if msg_block[3] then
+        for name, player in pairs(players_online) do
+            local msg_color = white
+            local namelower = name:lower()
+                if msg_block[3][name] then
+                    msg_color = green
+                end
+            send_player(players_online[namelower].name, player_tags(msg_block[1])..colorize(msg_color, msg_block[2]))
+        end
+        return
+    end
+    return send_all(player_tags(msg_block[1])..msg_block[2])
 end
 
 
 local function mentioned_players(msg_block)
     gsub(msg_block[2], "[a-zA-Z0-9_-]+", function(word)
-        if players_online[word:lower()] then
+        local namelower = word:lower()
+        if players_online[namelower] then
             if not msg_block[3] then
                 msg_block[3] = {}
             end
-            msg_block[3][word] = players_online[word:lower()].name
+            msg_block[3][namelower] = players_online[namelower].name
         end
     end)
-    return player_tags(msg_block)
+    return send_message(msg_block)
 end
 
 
@@ -139,14 +147,13 @@ local function filter_message(msg_block)
     end
 
     for i = 1, #bpatterns do
-        gsub(gsub(msg_block[2], "([%-])", "%%%1"), bpatterns[i], function(context)
-            context:gsub("([%w]+)", function(word)
-
-                if not whitelist[gsub(word:lower(), "[%p%c%d]+", "")] then
-                    msg_block[2] = gsub(msg_block[2], context, ("*"):rep(#word))
-                    minetest.log("action", "[FilterPlus]: Blacklisted ["..word.."]")
+        gsub(gsub(msg_block[2], "([%(%)%.%%%+%-%*%?%[%^%$])", "%%%1"), bpatterns[i], function(context)
+            context:gsub("([%S]+)", function(word)
+                if not whitelist[gsub(word:lower(), "[%p%d]+", "")] then
+                    msg_block[2] = gsub(msg_block[2], context, ("*"):rep(#context))
+                    return
                 else
-                    minetest.log("action", "[FilterPlus]: Whitelisted ["..word.."]")
+                    return
                 end
             end)
         end)
@@ -161,7 +168,7 @@ end
 
 filterplus_api = {}
 function filterplus_api.check_word(string)
-local filter_string = filter_message({true, string})
+    local filter_string = filter_message({true, string})
     if filter_string == string then
         return filter_string, false -- not censored
     end
@@ -170,8 +177,8 @@ end
 
 
 --[[  -- need a function to do this instead
-local function remove_repeating(msg_block)
-    msg_block[2] = msg_block[2]:gsub("(%S)%S+(%1)", "")  -- remove repeating
+local function remove_repeating(msg_block) -- for unnecessary repititions
+    msg_block[2] = msg_block[2]:gsub("(%S)%S+(%1)", "")
     return filter_message(msg_block)
 end
 ]]
@@ -201,9 +208,11 @@ on_chat_message(function(name, message)
     if #message < 2 then
         return true
     end
-        if #message > max_caps then
-            message = message:lower()
-        end
+
+    if #message > max_caps then
+        message = message:lower()
+    end
+
     filter_message({name, message})
 
     return true
@@ -310,24 +319,29 @@ minetest.register_chatcommand("mute", {
     params = "<player> [<minutes>]",
     privs = { mute = true },
     func = function(user, params)
-        params = {params:match("^([a-zA-Z0-9_-]+)%s*(%d*)")}
-
+        local params = {params:match("^([a-zA-Z0-9_-]+)%s*(%d*)")}
         if not params[1] then
             return false, "Usage: /mute <player> [<minutes>]"
         end
 
-        if not minetest.player_exists(params[1]) then
-            return send_player(user, mtag.."Player <"..params[1].."> does not exist.")
+        local name = params[1]
+        if not minetest.player_exists(name) then
+            return send_player(user, mtag.."Player <"..name.."> does not exist.")
+        end
+
+        local namelower = name:lower()
+        if not players_online[namelower] then
+            return send_player(user, mtag.."<"..name.."> has not been recently online")
         end
 
         local minutes = math.min((tonumber(params[2]) or 2), 120)
 
-        send_player(user, mtag.."Muted <"..params[1].."> muted for "..minutes.." minutes.")
-        send_player(params[1], mtag.."You are muted for "..colorize(red, minutes).." minutes.")
+        send_player(user, mtag.."Muted <"..name.."> muted for "..minutes.." minutes.")
+        send_player(name, mtag.."You are muted for "..colorize(red, minutes).." minutes.")
 
-        minetest.log("action","[Filter] [Report]: "..user.." muted "..params[1].." for "..minutes.." minutes.")
+        minetest.log("action","[Filter] [Report]: "..user.." muted "..name.." for "..minutes.." minutes.")
 
-        return sync_time(params[1]:lower(), time() + minutes * 60)
+        return sync_time(namelower, time() + minutes * 60)
     end,
 })
 
@@ -337,41 +351,41 @@ minetest.register_chatcommand("unmute", {
     params = "<player>",
     privs = { mute = true },
     func = function(user, param)
-        local playername = param:match("([a-zA-Z0-9_-]+)")
+        local name = param:match("([a-zA-Z0-9_-]+)")
 
-        if not playername then
+        if not name then
             return false, "Usage: /unmute <player>"
         end
 
-        local name = playername:lower()
+        local namelower = name:lower()
 
-        if players_online[name] and players_online[name].time <= time() then
-            return send_player(user, mtag.."<"..playername.."> is not currently muted.")
+        if players_online[namelower] and players_online[namelower].time <= time() or
+                not players_online[namelower] then
+            return send_player(user, mtag.."<"..name.."> is not currently muted.")
         end
         
-        send_player(user, mtag.."<"..playername.."> mute removed.")
+        send_player(user, mtag.."<"..name.."> mute removed.")
         send_player(name, mtag.."You are not muted.")
         
-        return sync_time(name, 1)
-    end,
+        return sync_time(namelower, 1)
+    end
 })
 
 
 local function add_player_online(player)
-    if not player:is_player() then
-        return
-    end
+    local name = player and player:get_player_name()
+    if not name then return end
+    
+    local namelower = name:lower()
 
-    local name = player:get_player_name()
-
-    if not players_online[name] or players_online[name].time < time() then
-        players_online[name:lower()] = {
+    if not players_online[namelower] or players_online[namelower].time < time() then
+        players_online[namelower] = {
             name = name,
             ip = player_ip(name),
             time = time()
         }
     end
-    return name:lower()
+    return namelower
 end
 
 minetest.register_on_joinplayer(function(player)
@@ -379,13 +393,14 @@ minetest.register_on_joinplayer(function(player)
 end)
 
 
-local int = math.random(500,800)  -- Randomized to avoid sequencing
+local int = math.random(3500,3800)
 local player_by_name = minetest.get_player_by_name
 local function purge_offline()
+    local time_past = time() + int
     for name, player in pairs(players_online) do
         if not player_by_name(player.name) then
-            if player.time < time() then
-                players_online[name:lower()] = nil
+            if player.time < time_past then
+                players_online[name] = nil
             end
         end
     end
@@ -394,6 +409,33 @@ end
 minetest.after(int, purge_offline)
 
 
+ -- Filter saves are not automatic due to size
+minetest.register_chatcommand("save_filter", {
+	description = "Save Filter Lists Manually",
+	params = "",
+	privs = {server = true},
+	func = function(name)
+        save_filter(filter)
+    end,
+})
+
+ -- Use this after editing the list files
+minetest.register_chatcommand("reload_filter", {
+	description = "Reloads Filter Lists from File",
+	params = "",
+	privs = {server = true},
+	func = function(name)
+
+        blacklist = {}
+        index_blacklist(dofile(blacklist_file))
+
+        whitelist = {}
+        index_whitelist(dofile(whitelist_file))
+
+    end,
+})
+
+ -- Faster server boot time
 minetest.register_on_mods_loaded(function()
     if #blacklist <= 0 then
         index_blacklist(dofile(blacklist_file))
@@ -403,17 +445,3 @@ minetest.register_on_mods_loaded(function()
         index_whitelist(dofile(whitelist_file))
     end
 end)
-
-minetest.register_on_shutdown(function() 
-    save_filter(filter)
-end)
-
-
-minetest.register_chatcommand("save_filter", {
-	description = "Save Filter Lists Manually",
-	params = "",
-	privs = {server = true},
-	func = function(name)
-        save_filter(filter)
-    end,
-})
