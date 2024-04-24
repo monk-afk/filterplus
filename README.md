@@ -6,18 +6,14 @@ Copyright (c) 2023 monk
 
 Details
 -------
-- Chat messages filtered using pattern, able to filter word variants and mutations.
-- Positive patterns are checked against whitelist before being censored.
-- Censored words are replaced with asterisk(*).
+- Indexed Lua patterns from blacklist. Matches words in blacklist including 
+- Whitelist 
+- Censored words with asterisk(*).
 - Removes URL links.
-- Name tagging, includes ranks, exp, and faction support.
-- Players mentioned sends green text.
-- No caps for messages over 16 characters.
-
-Includes API for other mods to check words against blacklist. Will return true with the word censored by asterisk.
-
-Filtering pattern is: `(.*[fF]+[%s%p]-[uU]+[%s%p]-[cC]+[%s%p]-[kK]+[%s%p]-.*)`
-In english: Match anything before the first letter, and spaces/punctuation between each letter, and everything after the last letter.
+- Chat tag supprt, includes ranks, exp, and faction support.
+- Name mention highlight green text.
+- Lowers caps in messages with over 16 characters.
+- API will return true with the word censored by asterisk.
 
 Chat commands
 -------------
@@ -45,5 +41,14 @@ The minetest.conf setting must be true, and pass required values.
 - `filterplus_exp`: `(Exp)` requires integer or string
 
 Tag order is: `{Rank}[Faction](Exp)<PlayerName> message`
+
+Additional Info
+---------------
+> Adding words with UTF-8 characters are saved to mod_storage as UTF reference codes (\u00f). This will cause many false-positives.
+
+> If `tex` is a blacklisted word, all instances containing `tex` are filtered, such as `text`, `context`, `contextual`, etc. This means adding these branch words is redundant, root words should be sufficient.
+
+> Filter lists are sorted by numerical index, not alphabetically. This allows for word priority when whitelist checking, for example, if `luck` and `luk` are blacklisted, saying `lucky` will catch the former first.
+
 ##
 Current Version **`0.1.4`**

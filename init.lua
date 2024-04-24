@@ -147,7 +147,7 @@ local function filter_message(msg_block)
     end
 
     for i = 1, #bpatterns do
-        gsub(gsub(msg_block[2], "([%(%)%.%%%+%-%*%?%[%^%$])", "%%%1"), bpatterns[i], function(context)
+        gsub(gsub(msg_block[2], "[%(%)%.%-%*%+%?%[%]%^%$%%]", "%%%1"), bpatterns[i], function(context)
             context:gsub("([%S]+)", function(word)
                 if not whitelist[gsub(word:lower(), "[%p%d]+", "")] then
                     msg_block[2] = gsub(msg_block[2], context, ("*"):rep(#context))
@@ -240,7 +240,7 @@ minetest.register_chatcommand("filter", {
             return send_player(name, mtag.."Usage: /"..command.." "..list_type.." <string>")
         end
 
-        word = word:gsub("[%p%c%d]+", ""):gsub("%s+", " ")
+        word = word:gsub("[%p%c]+", ""):gsub("%s+", " ")
 
         if list_type == "search" then
             local flag
