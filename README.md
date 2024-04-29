@@ -27,6 +27,14 @@ Chat commands
 ```md
 /filter <blacklist>|<whitelist>|<delete>|<search> <string>
 ```
+- Save filter lists to mod_storage. This is not automatic due to the size of the whitelist, saving to disk causes a moment of lag.
+```md
+/filter_save
+```
+- Reload the filter lists. Applies changes made to the filter files.
+```md
+/filter_reload
+```
 
 Message Tags
 ------------
@@ -44,11 +52,14 @@ Tag order is: `{Rank}[Faction](Exp)<PlayerName> message`
 
 Additional Info
 ---------------
-> Adding words with UTF-8 characters are saved to mod_storage as UTF reference codes (\u00f). This will cause many false-positives.
+- non-ASCII characters
+> Adding words by command containing UTF-8 characters are saved to mod_storage as UTF reference codes (\u00f). This will cause many false-positives.
 
-> If `tex` is a blacklisted word, all instances containing `tex` are filtered, such as `text`, `context`, `contextual`, etc. This means adding these branch words is redundant, root words should be sufficient.
+- Context matches
+> If `tex` is a blacklisted word, all instances containing `tex` are filtered, such as `text`, `context`, `contextual`, etc. This means blacklisting these branch words is redundant, root words should be sufficient.
 
-> Filter lists are sorted by numerical index, not alphabetically. This allows for word priority when whitelist checking, for example, if `luck` and `luk` are blacklisted, saying `lucky` will catch the former first.
+- List Traversal
+> Filter lists are sorted by numerical index, not alphabetically. This allows for word priority when list checking, for example, if `luck` and `luk` are blacklisted, saying `lucky` will catch the former first.
 
 ##
 Current Version **`0.1.4`**

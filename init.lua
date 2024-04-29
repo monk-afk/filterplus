@@ -410,7 +410,7 @@ minetest.after(int, purge_offline)
 
 
  -- Filter saves are not automatic due to size
-minetest.register_chatcommand("save_filter", {
+minetest.register_chatcommand("filter_save", {
 	description = "Save Filter Lists Manually",
 	params = "",
 	privs = {server = true},
@@ -420,7 +420,7 @@ minetest.register_chatcommand("save_filter", {
 })
 
  -- Use this after editing the list files
-minetest.register_chatcommand("reload_filter", {
+minetest.register_chatcommand("filter_reload", {
 	description = "Reloads Filter Lists from File",
 	params = "",
 	privs = {server = true},
