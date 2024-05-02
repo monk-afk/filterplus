@@ -13,6 +13,7 @@ local ranks_available = minetest.settings:get_bool("filterplus_ranks") and
         minetest.global_exists("ranks") == true
 local exp_available = minetest.settings:get_bool("filterplus_exp") and
         minetest.global_exists("exp") == true
+local max_caps = tonumber(minetest.settings:get("filterplus_max_caps")) or 16
 
 local send_player = minetest.chat_send_player
 local send_all    = minetest.chat_send_all
@@ -30,7 +31,6 @@ local concat = table.concat
 local time   = os.time
 
 local players_online = {}
-local max_caps = 16
 
 local blacklist_file = modpath.."blacklist.lua"
 local whitelist_file = modpath.."whitelist.lua"
@@ -87,7 +87,7 @@ end
 
 local function player_tags(name)
     local tags = {}
-    -- these could be indexed in table instead of hitting with every msg
+    -- tags could be indexed in online players table instead of hitting with every msg
     if ranks_available then
         local rank_title, rank_color = ranks.get_player_rank(name)
         if rank_title then
@@ -183,7 +183,7 @@ local function remove_repeating(msg_block) -- for unnecessary repititions
 end
 ]]
 
-local function remove_hyperlink(message)
+local function remove_hyperlink(message)  -- sometimes gives false positive
     return message:gsub("h*t*t*p*s*:*/*/*%S+%.+%S+%.*%S%S%S?/*%S*%s?", "")
 end
 
@@ -261,7 +261,7 @@ minetest.register_chatcommand("filter", {
             return
         end
 
-        if list_type == "delete" then
+        if list_type == "delete" then -- review: delete should remove the word from both lists
             if blacklist[word] then
                 table.remove(bpatterns, blacklist[word])
                 blacklist[word] = nil
@@ -283,7 +283,9 @@ minetest.register_chatcommand("filter", {
                 return send_player(name, mtag.."Word already whitelisted.")
             end
             index_whitelist({word})
-        elseif list_type == "blacklist" then
+        end
+
+        if list_type == "blacklist" then
             whitelist[word] = nil
             if blacklist[word] then
                 return send_player(name, mtag.."Word already blacklisted.")
