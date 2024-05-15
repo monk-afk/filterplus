@@ -1,18 +1,20 @@
 FilterPlus
 ----------
-Chat filter and censor with API and features: Lowercase messages exceeding max_caps setting, Support for Chat rank/tags, Player-mention highlighting, Filter and chat moderation tools, etc.
+Primarily a chat filter, also censors content via API.
+
 
 Copyright (c) 2023 monk
 
 Details
 -------
 - Blacklisted words indexed by pattern.
-- Robust Whitelist compiled from real messages.
+- Robust Whitelist.
 - Censors words with asterisk(*).
+- Lowers casing in messages exceeding max_caps setting.
+- Support for Chat rank/tags.
+- Mention player by name sends green text messages.
+- Filter list management and chat moderation commands.
 - Removes URL links.
-- Chat rank/tagging supprt.
-- Name mention highlights message with green text.
-- Lowers caps in messages with over 16 characters.
 - API will return true with the word censored by asterisk.
 
 Chat commands
@@ -27,19 +29,29 @@ Chat commands
 ```
 
 
-**List management** only applies to the mod_storage file.
+**Filter List management**
 
 - Manage mod_storage filter lists (requires `blacklist` priv)
 ```md
 /filter <blacklist>|<whitelist>|<delete>|<search> <string>
 ```
+- Add word to whitelist, or blacklist (will automatically remove word from opposite list)
+`/filter whitelist word`
+`/filter blacklist word`
+- Delete word from all filter lists (bug: it doesn't)
+`/filter delete word`
+- Search for word in either filter lists
+`/filter search word`
 
-- Save filter lists to mod_storage. This is not automatic due to the size of the whitelist, saving to disk causes a moment of lag.
+- Save filter lists to mod_storage.
+- Run this after making changes to the mod_storage filters via command
+  - [ ] To do: Needs update to only save words in mod storage
 ```md
 /filter_save
 ```
 
-- Reload the filter lists. Applies changes made to the filter files.
+- Reload the filter lists.
+  - Run this after modifying the word filter files whitelist.lua or blacklist.lua.
 ```md
 /filter_reload
 ```
@@ -57,6 +69,20 @@ The minetest.conf setting must be true, and pass required values.
 - `filterplus_exp`: `(Exp)` requires integer or string
 
 Tag order is: `{Rank}[Faction](Exp)<PlayerName> message`
+
+
+API
+---
+Not limited to chat messages. Strings from any mod can be checked against filter api:
+
+`filterplus_api.check_word(string)`
+
+This will return with the string, censored or not, with boolean:
+
+`return "This **** is censored", true`
+
+`return "This word is not censored", false`
+
 
 Additional Info
 ---------------
