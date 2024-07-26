@@ -5,7 +5,7 @@
 -- Note: Still Contains Profanities
 return {
 "a", "i", "e", "o", "u",
-"beautifulllll",
+"soga",
 "gya",
 "fushiguro",
 "gayab",
