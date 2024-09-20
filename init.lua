@@ -284,34 +284,42 @@ minetest.register_chatcommand("unblock", {
   privs = {shout = true},
   func = function(user, params)
     local blocked_name = params:match("^(%*?[a-zA-Z0-9_-]*)$")
-    local user_blocklist = players_online[user:lower()].blocklist
+
+    if minetest.check_player_privs(user, "staff") or 
+        minetest.check_player_privs(blocked_name, "staff") then
+      return send_player(user, mtag.."Staff cannot block or be blocked!")
+    end
+
+    local lower_user = user:lower()
+    
+    if not players_online[lower_user].blocklist then
+      return send_player(user, mtag.."Your block-list is empty!")
+    end
 
     if blocked_name == "*" then
       -- clear the user's blocklist
-      if user_blocklist then
-        players_online[user:lower()].blocklist = nil
-      end
+      players_online[lower_user].blocklist = nil
       return send_player(user, mtag.."Your block-list has been cleared!")
+    end
 
-    elseif blocked_name == "" or not blocked_name then
+    if not blocked_name or blocked_name == "" then
       -- print a list of user's blocklist
-      if user_blocklist then
-        local tmp = {}
-        for name,_ in pairs(user_blocklist) do
-          table.insert(tmp, name)
-        end
-        return send_player(user, mtag.."Players in your block-list: "..table.concat(tmp, ", "))
-      else
-        return send_player(user, mtag.."Your block-list is empty!")
+      local tmp = {}
+      for name,_ in pairs(user_blocklist) do
+        table.insert(tmp, name)
       end
+      return send_player(user, mtag.."Players in your block-list: "..table.concat(tmp, ", "))
+    end
 
-    elseif not minetest.player_exists(blocked_name) then
+    if not minetest.player_exists(blocked_name) then
       return send_player(user, mtag.."Player <"..blocked_name.."> does not exist.")
+    end
 
-    elseif not user_blocklist[blocked_name] then
+    if not players_online[lower_user].blocklist[blocked_name] then
       return send_player(user, mtag.."Player <"..blocked_name.."> is not in your block-list")
       
-    elseif allow_messages_from(blocked_name, user) then
+    elseif players_online[lower_user].blocklist[blocked_name]
+        and allow_messages_from(blocked_name, user) then
       return send_player(user, mtag.."Removed <"..blocked_name.."> from your block-list")
 
     else
