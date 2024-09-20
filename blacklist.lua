@@ -1,23 +1,6 @@
     --==[[       filterplus       ]]==--
-    --==[[   blacklist.lua  009   ]]==--
+    --==[[   blacklist.lua  010   ]]==--
     --==[[   mit (c) 2023  monk   ]]==--
-
---[[
-  perfect example of why ordering the blacklist is important
-  ```prolog
-      Message: b i t c h go f u c k urself
-      Filtered: [fu]
-      Not Whitelisted: [f]
-          Whitelisted: [u]
-      Filtered: [bitch]
-      Not Whitelisted: [b]
-          Whitelisted: [i]
-      Not Whitelisted: [t]
-      Not Whitelisted: [c]
-      Not Whitelisted: [h]
-      Delivered: "********* go *** c k urself"
-```
-]]
     
 return {
 "fawk",
@@ -41,6 +24,7 @@ return {
 "bitch",
 "bitc",
 "fap",
+"cnt",
 "ass",
 "tit",
 "sex",
@@ -311,7 +295,6 @@ return {
 "coprolagnia",
 "coprophilia",
 "cunnilingus",
-"fùçk",
 "coño",
 "Übersetzer",
 "Блядь",
