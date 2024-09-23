@@ -63,7 +63,7 @@ local function index_blacklist(word_array)
       local pattern = "(%S*"
       for n = 1, #word_array[i] do
         local l = word_array[i]:sub(n,n)
-        pattern = pattern .. "["..l..l:upper().."]+[%A]-"
+        pattern = pattern .. "["..l..l:upper().."]+[%s%p]-"
       end
       bpatterns[#bpatterns+1] = pattern.."%S*)"
       blacklist[word_array[i]] = #bpatterns
@@ -146,7 +146,7 @@ local function filter_message(msg_block)
   for i = 1, #bpatterns do
     gsub(gsub(msg_block[2], "([%(%)%.%%%+%-%*%?%[%^%$])", "%%%1"), bpatterns[i], function(context)
       context:gsub("[%S]+", function(word)
-        if not whitelist[gsub(word:lower(), "%A+", "")] then
+        if not whitelist[gsub(word:lower(), "[%p%d]+", "")] then
           msg_block[2] = gsub(msg_block[2], context, ("*"):rep(#context))
           return
         else
