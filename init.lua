@@ -305,7 +305,7 @@ minetest.register_chatcommand("unblock", {
     if not blocked_name or blocked_name == "" then
       -- print a list of user's blocklist
       local tmp = {}
-      for name,_ in pairs(user_blocklist) do
+      for name,_ in pairs(players_online[lower_user].blocklist) do
         table.insert(tmp, name)
       end
       return send_player(user, mtag.."Players in your block-list: "..table.concat(tmp, ", "))
