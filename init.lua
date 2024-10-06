@@ -142,18 +142,34 @@ local function mentioned_players(msg_block)
 end
 
 
+local accent_map = dofile(modpath.."accent_map.lua")
+local function normalize_accents(str)
+  return (str:gsub("[%z\1-\127\194-\244][\128-\191]*", function(c)
+    return accent_map[c] or c
+  end))
+end
+
+
 local function filter_message(msg_block)
+  local sanitized_message = gsub(normalize_accents(msg_block[2]), "([%(%)%.%%%+%-%*%?%[%^%$])", "%%%1")
+  local is_censored
+
   for i = 1, #bpatterns do
-    gsub(gsub(msg_block[2], "([%(%)%.%%%+%-%*%?%[%^%$])", "%%%1"), bpatterns[i], function(context)
+    gsub(sanitized_message, bpatterns[i], function(context)
       context:gsub("[%S]+", function(word)
         if not whitelist[gsub(word:lower(), "[%p%d]+", "")] then
-          msg_block[2] = gsub(msg_block[2], context, ("*"):rep(#context))
+          sanitized_message = gsub(sanitized_message, context, ("*"):rep(#context))
+          is_censored = true
           return
         else
           return
         end
       end)
     end)
+  end
+
+  if is_censored then
+    msg_block[2] = sanitized_message
   end
 
   if type(msg_block[1]) == "boolean" then
