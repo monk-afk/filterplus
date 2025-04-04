@@ -1,0 +1,4 @@
+*.tmp
+*.sh
+tmp/
+dev/
