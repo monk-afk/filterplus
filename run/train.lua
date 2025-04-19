@@ -70,7 +70,7 @@ local function run_trainer(clip)
       end
 
       local count = counter()
-      if count % 10000 == 0 then
+      if count % 20000 == 0 then
         local c = dofile(clip.util_counter)()
         for _ in pairs(staging_words) do
           c()

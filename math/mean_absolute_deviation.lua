@@ -13,19 +13,30 @@ local function get_mad(vector)
   return (mad / #vector)
 end
 
+-- inversely proportional to the distance between the current MAD and the EMA threshold
+local function get_alpha(delta, alpha_min, alpha_max, k)
+  return alpha_min + (alpha_max - alpha_min) * (1 / (1 + k * delta))
+end
+
 
 local function update_ema_mad() -- EMA adjusted average
   local mad_threshold
-  local alpha = 0.0085 -- higher alpha = more reactive, lower alpha = more stability
+  local alpha_max = 0.0085 -- higher alpha = more reactive
+  local alpha_min = 0.0005 --  lower alpha = more stability
+  local curve     = 100    -- higher curve = more resistance
 
   return function(vector)
     local new_mad_value = get_mad(vector)
 
     if not mad_threshold then
       mad_threshold = new_mad_value
-    else
-      mad_threshold = alpha * new_mad_value + (1 - alpha) * mad_threshold
     end
+
+    local alpha = get_alpha(
+        math.abs(new_mad_value - mad_threshold), alpha_min, alpha_max, curve)
+
+    mad_threshold = alpha * new_mad_value + (1 - alpha) * mad_threshold
+
     return new_mad_value, mad_threshold
   end
 end

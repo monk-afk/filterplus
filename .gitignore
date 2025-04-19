@@ -2,5 +2,3 @@
 *.sh
 tmp/
 dev/
-tokens.lua
-embeddings.lua

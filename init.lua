@@ -14,8 +14,8 @@ if clip.help or clip.h then
   return dofile(run_dir .. "help.lua")(version_string)
 end
 
-clip.param_epochs        = tonumber(clip.ep) or 2       -- repeating the training session
-clip.param_learn_rate    = tonumber(clip.lr) or 0.00001 -- learn rate
+clip.param_epochs        = tonumber(clip.ep) or 1       -- repeating the training session
+clip.param_learn_rate    = tonumber(clip.lr) or 0.0000001 -- learn rate
 clip.param_vector_layers = tonumber(clip.dim) or 20     -- embedded vector dimentions
 
 clip.corpus_messages = corpus_dir .. "messages.txt" -- see readme for links to online corpuses
@@ -35,7 +35,6 @@ clip.math_mad       = math_dir .. "mean_absolute_deviation.lua"  -- magnitute va
 clip.math_bias_avg  = math_dir .. "bias_trend.lua"               -- average trend of embedded weights
 
 clip.util_sanitizer   = util_dir .. "sanitizer.lua"        -- heavy sanitizing strings
-clip.util_join_spaced = util_dir .. "join_spaced.lua"     -- merge s p a c e y
 clip.util_get_tensor  = util_dir .. "get_tensor.lua"       -- fetch tensor from embeddings or staging
 clip.util_save_table  = util_dir .. "save_table.lua"       -- table saving
 

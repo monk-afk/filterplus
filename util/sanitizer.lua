@@ -308,9 +308,27 @@ local number_map = {
 }
 
 
-local function sanitize(clip)
-  local join_spaced = dofile(clip.util_join_spaced)
-  return function(str)
+local function join_spaced(str)
+  local str = " " .. str .. " "
+  local spaced_out = str:match("%s(%a)%s%a%s%a%s")
+
+  if spaced_out then
+    local merged = spaced_out
+    local function m(s) merged = s end
+
+    while true do
+      local mstr = str:gsub("(" .. merged .. ")%s((%a)%s)", function(a,s,b)
+        m(a .. b)
+        return a .. s
+      end)
+      if mstr ~= str then str = mstr else break end
+    end
+  end
+  return str:match("%s(.+)%s")
+end
+
+
+local function sanitize(str)
     if str and str ~= "" then
       str = str:lower()
         :gsub("[%z\1-\127\194-\244][\128-\191]*", function(c) return accent_map[c] or c end)
@@ -330,14 +348,9 @@ local function sanitize(clip)
       str = join_spaced(str)
     end
     return str
-  end
 end
 
-
 return sanitize
-
-
-
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --

@@ -3,7 +3,7 @@ local function on_chat_message(clip)
   local initial_learn_rate = clip.param_learn_rate
 
   local is_censored = dofile(clip.util_blacklist)(clip)
-  local sanitize = dofile(clip.util_sanitizer)(clip)
+  local sanitize = dofile(clip.util_sanitizer) -- (clip)
   local update_embedding = dofile(clip.math_sigmoid)
 
   local get_cosine_similarities = dofile(clip.math_cosine)
@@ -59,8 +59,8 @@ local function on_chat_message(clip)
   while true do  -- this is the main loop, to be replaced by core.on_chat_message()
     if not dofile(clip.run_signal) then break end -- so we can save the modified embeddings
 
-    local line = io.input():read()
-    -- local line = io.read():gsub("(.*issued command:%s/%a+%s[%a]+)", ""):gsub(".*issued command: ", "") -- stream debug.txt
+    -- local line = io.input():read()
+    local line = io.read():gsub("(.*issued command:%s/%a+%s[%a]+)", ""):gsub(".*issued command: ", "") -- stream debug.txt
 
     line = sanitize(line) -- heavy sanitize, leaving only letters
 
