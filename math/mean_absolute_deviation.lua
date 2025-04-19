@@ -9,17 +9,18 @@ local function get_mad(vector)
   for i = 1, #vector do
     mad = mad + math.abs(vector[i] - mean)
   end
-  return math.sqrt(mad / #vector)
-  -- return (mad / #vector)
+
+  return (mad / #vector)
 end
 
 
 local function update_ema_mad() -- EMA adjusted average
   local mad_threshold
-  local alpha = 0.0585 -- higher alpha = more reactive, lower alpha = more stability
+  local alpha = 0.0085 -- higher alpha = more reactive, lower alpha = more stability
 
   return function(vector)
-    local new_mad_value = get_mad(vector) 
+    local new_mad_value = get_mad(vector)
+
     if not mad_threshold then
       mad_threshold = new_mad_value
     else
@@ -30,9 +31,6 @@ local function update_ema_mad() -- EMA adjusted average
 end
 
 return get_mad, update_ema_mad
-
-
-
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --

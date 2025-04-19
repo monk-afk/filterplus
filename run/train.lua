@@ -1,5 +1,4 @@
 -- pre-process, create and train word embeddings
-local counter = {total_lines = 0, lines = 0}
 
 -- run tokenizer first to tokenize lines
 local function run_trainer(clip)
@@ -8,10 +7,12 @@ local function run_trainer(clip)
   local initial_learn_rate = clip.param_learn_rate
 
   local blacklist_check = dofile(clip.util_blacklist)(clip)
-  local add_gradient = dofile(clip.math_sigmoid)
-  local save_table   = dofile(clip.util_save_table)
+  local add_gradient    = dofile(clip.math_sigmoid)
+  local save_table      = dofile(clip.util_save_table)
+  local high_frequency  = dofile(clip.lib_connectives)
 
-  counter.total_lines = dofile(clip.util_line_count)(clip.lib_tokens)
+  local counter = dofile(clip.util_counter)()
+  local total_lines = dofile(clip.util_line_count)(clip.lib_tokens)
 
   print("Begin training.", "Epochs:", clip.param_epochs,
       "Learn Rate:", clip.param_learn_rate, "Vector Layers:", clip.param_vector_layers)
@@ -24,13 +25,10 @@ local function run_trainer(clip)
   local check_for_word, tensor_matrix, staging_words = dofile(clip.util_get_tensor)(clip)
 
   for epoch = 1, clip.param_epochs do
-    counter.lines = 0
+    counter(true)
 
     for eval in io.lines(clip.lib_tokens) do
       local learn_rate = initial_learn_rate
-
-      counter.lines = counter.lines + 1
-
       local is_positive, line = string_match(eval, "(%a+):([%a%s]+)")
       is_positive = is_positive == "true"
 
@@ -45,9 +43,10 @@ local function run_trainer(clip)
       local embeddings = {}
 
       for word in string_gmatch(line, "%a+") do
-        local word_tensor = check_for_word(word, tensor_matrix, staging_words)
-
-        embeddings[#embeddings+1] = {word, word_tensor}
+        if not high_frequency[word] then
+          local word_tensor = check_for_word(word, tensor_matrix, staging_words)
+          embeddings[#embeddings+1] = {word, word_tensor}
+        end
       end
 
       add_gradient(tensor_matrix, staging_words, embeddings, learn_rate, is_positive) -- calculate new embedded values
@@ -70,23 +69,22 @@ local function run_trainer(clip)
         end
       end
 
-      if counter.lines % 10000 == 0 then
-        local c = 0
-        for i,k in pairs(staging_words) do
-          c = c + 1
+      local count = counter()
+      if count % 10000 == 0 then
+        local c = dofile(clip.util_counter)()
+        for _ in pairs(staging_words) do
+          c()
         end
 
-        io.write(
-          string_format("Ep %d | %.02f%% | %d | Stage wipe: %d\n",
-            epoch, (counter.lines / counter.total_lines) * 100,
-            os.time() - ost, c
-          )); io.stdout:flush()
+        io.write(string_format("Ep %d | %.02f%% | %d | Stage wipe: %d\n",
+                epoch, (count / total_lines) * 100,
+                os.time() - ost, c() - 1
+              )); io.stdout:flush()
 
         staging_words = {}
       end
 
       if not dofile(clip.run_signal) then break end
-
     end
 
     save_table(tensor_matrix, clip.lib_embeddings)

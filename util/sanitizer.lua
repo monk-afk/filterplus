@@ -289,40 +289,50 @@ local accent_map = {
   ["₣"] = "f",
   ["£"] = "f",
   ["@"] = "a",
+  ["!"] = "i",
+  ["’"] = "'",
+  ["‘"] = "'",
+  ["¡"] = "i",
 }
 
 local number_map = {
   ["0"] = "o",
   ["1"] = "i",
   ["3"] = "e",
-  ["4"] = "u",
+  ["4"] = "a",
   ["5"] = "s",
   ["6"] = "g",
+  ["66"] = "gg",
   ["7"] = "t",
   ["8"] = "b",
 }
 
 
--- sanitizer.lua
-local function sanitize(str)
-  str = str:lower()
-    :gsub("(%f[%a]%a+)[-,‘'`’](%a+%f[%A])", "%1%2") -- merge words with apostrophes, i'll, you're, etc
-    -- :gsub("h*t*t*p*s*:*/*/*%S+%.+%S+%.*%S%S%S?/*%S*%s?", "") -- hyperlinks
-    :gsub("[%z\1-\127\194-\244][\128-\191]*", function(c) return accent_map[c] or c end)
-    :gsub("(%a+)(%d)(%a+)", function(pref, digit, suff) -- try to get words like 'gh0st'
-        return pref .. (number_map[digit] or digit) .. suff
-      end)
-      -- this could be done better; replacement map, or other method
-    :gsub("[^%a%s]+", " ")  -- replace any non-letter with a space (causes double-spacing)
-    :gsub("%s%s+", " "):gsub("^%s", ""):gsub("%s$","")       -- strip extra spaces
+local function sanitize(clip)
+  local join_spaced = dofile(clip.util_join_spaced)
+  return function(str)
+    if str and str ~= "" then
+      str = str:lower()
+        :gsub("[%z\1-\127\194-\244][\128-\191]*", function(c) return accent_map[c] or c end)
+        :gsub("(%a+)[-,'`](%a+%f[%A])", "%1%2") -- merge words with apostrophes, i'll, you're, etc
+        :gsub("h*t*t*p*s*:*/*/*%S+%.+%S+%.*%S%S%S?/*%S*%s?", "") -- hyperlinks
+        :gsub("(%a+)(%d+)(%a+)", function(pref, digit, suff) -- try to get words like 'gh0st'
+            return pref .. (number_map[tostring(digit)] or digit) .. suff
+          end)
+          -- this could be done better; replacement map, or other method
+        :gsub("[^%a%s]+", " ")  -- replace any non-letter with a space (causes double-spacing)
+        :gsub("%s%s+", " "):gsub("^%s", ""):gsub("%s$","")       -- strip extra spaces
 
-  while true do
-    local mstr = str:gsub("(%a%a*)(%1%1)", "%2") -- for excessive repeating characters
-    if mstr ~= str then str = mstr else break end
+      while true do
+        local mstr = str:gsub("(%a%a*)(%1%1)", "%2") -- for excessive repeating characters
+        if mstr ~= str then str = mstr else break end
+      end
+      str = join_spaced(str)
+    end
+    return str
   end
-
-  return str
 end
+
 
 return sanitize
 

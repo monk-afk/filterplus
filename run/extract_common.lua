@@ -1,79 +1,70 @@
--- for finding similar words based on the vector direction
-local function cosine_similarity(vec1, vec2)
-  local sum, norm1, norm2 = 0, 0, 0
+  -- extracts the top 500 most commonly used words from the corpus
+  -- make sure to double check the list for curses, single letters, etc
+local function extract_common_words(clip)
+  io.write("Load sanitizer\n"); io.stdout:flush()
+  local sanitize = dofile(clip.util_sanitizer)(clip)
 
-  for i = 1, #vec1 do
-    sum = sum + vec1[i] * vec2[i]
-    norm1 = norm1 + (vec1[i] * vec1[i])
-    norm2 = norm2 + (vec2[i] * vec2[i])
-  end
+  io.write("Assessing workload... "); io.stdout:flush()
+  local total_lines = dofile(clip.util_line_count)(clip.corpus_messages)
+  io.write("Total lines: ", total_lines, "\n"); io.stdout:flush()
+  local count = dofile(clip.util_counter)() -- local c = 0
 
-  if norm1 == 0 or norm2 == 0 then
-    return 0
-  end
+  local vocabulary = {}
+  local start_time = os.time()
 
-  return sum / (math.sqrt(norm1) * math.sqrt(norm2))
-end
-
-
-local function get_cosine_similarities(target_word, tensor_matrix, staging_words)
-  local target_embedding = tensor_matrix[target_word] or staging_words[target_word]
-
-  local similarities = {}
-  -- first check the permanent tensors
-  for word, vector in pairs(tensor_matrix) do
-    if word and word ~= target_word then
-      table.insert(similarities, {
-        word = word,
-        similarity = cosine_similarity(target_embedding, vector),
-        vector = vector
-        }
-      )
-    end
-  end
-
-  -- if the word didn't exist in permanent, it exists in staging
-  for word, data in pairs(staging_words) do
-    if word and word ~= target_word then
-      table.insert(similarities, {
-        word = word,
-        similarity = cosine_similarity(target_embedding, data.vector),
-        vector = vector
-        }
-      )
-    end
-  end
-
-  table.sort(similarities,
-    function(a, b)
-      return a.similarity > b.similarity 
-    end
-  )
-
-  similarities[0] = {}
-
-  if not next(similarities[1]) then
-    return similarities
-  end
-
-  for n = #similarities, 1, -1 do -- trim away everything except top N similar words
-    if n <= 10 and n > 0 then
-      local vector = similarities[n].vector
-
-      if vector then
-        for v = 1, #vector do  -- index 0 reserved contains only values for MAD use
-          table.insert(similarities[0], vector[v])
+  for line in io.lines(clip.corpus_messages) do
+    local line = sanitize(line)
+    if line and line ~= "" then
+      for word in line:gmatch("%a+") do
+        if not vocabulary[word] then
+          vocabulary[word] = 1
+        else
+          vocabulary[word] = vocabulary[word] + 1
         end
       end
 
-    else -- drop everything else we dont use
-      similarities[n] = nil
+      local counted_lines = count() -- c = c + 1
+      if counted_lines % 50000 == 0 then
+        local elapsed_time = os.time() - start_time
+        local lines_per_second = counted_lines / elapsed_time -- lines per second
+        io.write(string.format("%s %8s/%s (%.02f%%) %.2f l/s\n",
+            elapsed_time, counted_lines, total_lines, 
+            (counted_lines / total_lines) * 100,
+            lines_per_second))
+        io.stdout:flush()
+      end
     end
   end
-  return similarities
+
+  local sorted_vocab = {}
+
+  for word, score in pairs(vocabulary) do
+    table.insert(sorted_vocab, {
+      word = word, score = score
+    })
+  end
+
+  table.sort(sorted_vocab, function(a,b)
+    return a.score > b.score
+  end)
+
+  local file = io.open(clip.lib_common_words, "w")
+
+  local max = math.min(#sorted_vocab, 500)
+
+  file:write("return {\n")
+  for n = 1, max do
+    file:write(
+      "[\"", sorted_vocab[n].word, "\"] = true,\n"
+    )
+  end
+
+  file:write("}")
+  file:close()
+
 end
 
-return get_cosine_similarities
+return extract_common_words
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --

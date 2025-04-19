@@ -1,30 +1,49 @@
--- callback closure for checking the blacklist
 local function blacklist_closure(clip)
-local blacklist = {}
+  local blacklist = {}
+  local frontier = {}
+  local blacklist_strict = {}
 
-  -- construct patterns from blacklist file
-  for _, word in ipairs(dofile(clip.lib_blacklist)) do
-    blacklist[#blacklist + 1] = "(%a-" .. word:gsub(".", "%%s?%1+") .. "[%a%s]-)%f[%A]"
+  -- exhaustive compilation of all words to be matched 1:1
+  for f, word in ipairs(dofile(clip.lib_strictlist)) do
+    blacklist_strict[word] = true
   end
 
+  -- loose pattern to capture context of flagged words
+  for n, word in ipairs(dofile(clip.lib_blacklist)) do
+    blacklist[word] = "(%a-" .. word:gsub(".", "%1+%%s?") .. "%a*i*n*g*e*d*r*s*)"
+  end
+
+  -- for isolating the blacklisted word in the flagged context
+  for n, word in ipairs(dofile(clip.lib_blacklist)) do
+    local f = "^(" .. word:sub( 1, 1) .. "+%s?"
+    for c = 2, #word -1 do
+      f = f .. word:sub(c, c) .. "+" .. "%s?"
+    end
+    frontier[word] = f .. word:sub(-1, -1) .. "+%a-i*n*g*e*d*r*s*)$"
+  end
+
+  local whitelist_check = dofile(clip.util_whitelist)(clip)
+
   return function(str)
+    local is_positive = false
     return coroutine.wrap(function()
-        for i, pattern in ipairs(blacklist) do
-          for flagged_context in str:gmatch(pattern) do
-            for flagged_word in flagged_context:gsub("(%f[%a])(%a)%s", "%1%2"):gmatch("%a+") do
-              coroutine.yield(flagged_word)  -- return words to be cosine evaluated
+      for blacklisted_word, pattern in pairs(blacklist) do
+        for flagged_context in str:gmatch(pattern) do
+          local isolated_flag = flagged_context:gsub(frontier[blacklisted_word], "%1")
+          for word in string.gmatch(isolated_flag, "%a+") do
+            if blacklist_strict[word]
+                or blacklist_strict[flagged_context:gsub("%s", "")]
+                or not whitelist_check(word) then
+              coroutine.yield(word)
             end
           end
         end
       end
-    )
+    end)
   end
 end
 
 return blacklist_closure
-
-
-
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --

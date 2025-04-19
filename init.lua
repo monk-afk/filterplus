@@ -14,49 +14,54 @@ if clip.help or clip.h then
   return dofile(run_dir .. "help.lua")(version_string)
 end
 
-clip.param_epochs        = tonumber(clip.ep) or 10      -- repeating the training session
+clip.param_epochs        = tonumber(clip.ep) or 2       -- repeating the training session
 clip.param_learn_rate    = tonumber(clip.lr) or 0.00001 -- learn rate
-clip.param_vector_layers = tonumber(clip.dim) or 5       -- embedded vector dimentions
+clip.param_vector_layers = tonumber(clip.dim) or 20     -- embedded vector dimentions
 
 clip.corpus_messages = corpus_dir .. "messages.txt" -- see readme for links to online corpuses
 
 clip.run_signal    = run_dir .. "signal.lua"             -- graceful exit signal if return is false
+if not dofile(clip.run_signal) then  -- "return false" to terminate gracefully
+  io.open(clip.run_signal, "w"):write("return true"):close()
+end
+
 clip.run_main      = run_dir .. "main.lua"               -- the main filter process
-clip.run_tokenizer  = run_dir .. "tokenizer.lua"         -- pre-process (tokenize) the corpus data
+clip.run_tokenizer = run_dir .. "tokenizer.lua"         -- pre-process (tokenize) the corpus data
 clip.run_trainer   = run_dir .. "train.lua"              -- training function after tokenizing
 
 clip.math_sigmoid   = math_dir .. "sigmoid_derivative.lua"       -- updates embedded vectors
-clip.math_meansqrt  = math_dir .. "root_mean_squared.lua"        -- magnitute value or frequency
 clip.math_cosine    = math_dir .. "cosine_similarity.lua"        -- similar direction of vectors
 clip.math_mad       = math_dir .. "mean_absolute_deviation.lua"  -- magnitute value or frequency
+clip.math_bias_avg  = math_dir .. "bias_trend.lua"               -- average trend of embedded weights
 
 clip.util_sanitizer   = util_dir .. "sanitizer.lua"        -- heavy sanitizing strings
-clip.util_save_table  = util_dir .. "save_table.lua"       -- table saving
+clip.util_join_spaced = util_dir .. "join_spaced.lua"     -- merge s p a c e y
 clip.util_get_tensor  = util_dir .. "get_tensor.lua"       -- fetch tensor from embeddings or staging
+clip.util_save_table  = util_dir .. "save_table.lua"       -- table saving
+
 clip.util_line_count  = util_dir .. "line_count.lua"       -- count lines in file
 clip.util_counter     = util_dir .. "counter_closure.lua"  -- closure for counting
 
 clip.util_blacklist = util_dir .. "blacklist_closure.lua"  -- blacklist pattern construct
 clip.util_whitelist = util_dir .. "whitelist_closure.lua"  -- it would be best to not need this
 
+clip.util_colorize  = util_dir .. "colorize.lua"  -- ansi string output: color("red", string)
+
 clip.lib_whitelist   = lib_dir .. "whitelist.lua"     -- list of non-vulgar words (negatives)
 clip.lib_blacklist   = lib_dir .. "blacklist.lua"     -- list of vulgar words (positives)
+clip.lib_strictlist  = lib_dir .. "curselist.lua"     -- confirmation list of known cureses (for tokenizing)
+
 clip.lib_embeddings  = lib_dir .. "embeddings.lua"    -- the embeddings table (will be created if non-existent)
 clip.lib_tokens      = lib_dir .. "tokens.lua"        -- blacklist-whitelist evaluated messages
-clip.lib_evalflags   = lib_dir .. "eval_flags.lua"    -- temporary for counting the curses flagged during tokenization
+clip.lib_connectives = lib_dir .. "connectives.lua"   -- high-frequency usage words to ignore
 
--- change to "return false" to terminate gracefully
-if not dofile(clip.run_signal) then
-  io.open(clip.run_signal, "w"):write("return true"):close()
-end
 
 -- checking command line options
-if clip.eval then -- tokenize data
-  dofile(clip.run_tokenizer)(clip)
-end
+if clip.tokenize then -- tokenize data
+  return dofile(clip.run_tokenizer)(clip)
 
-if clip.train then  -- train the embeddings
-  dofile(clip.run_trainer)(clip)
+elseif clip.train then  -- train the embeddings
+  return dofile(clip.run_trainer)(clip)
 
 elseif clip.main then  -- run the message filter
   return dofile(clip.run_main)(clip)
@@ -65,21 +70,20 @@ elseif clip.search then  -- search and display the cosin similar words
   -- usage: `lua init.lua search=someword
   local tensor_matrix = dofile(clip.lib_embeddings)
   local target_word = clip.search
-  local cos = dofile(clip.math_cosine)
-  local mad,_ = dofile(clip.math_mad)
+  local cosine_similar = dofile(clip.math_cosine)
+  local bias = dofile(clip.math_bias_avg)
 
-  local result = cos(target_word, tensor_matrix, {})
+  local result = cosine_similar(target_word, tensor_matrix, {})
 
-  io.write("Similar Word\tSimilarity\n")
+  io.write("Similar Word\tSimilarity\tBias Trend\n")
 
   for n = 1, #result do
-    io.write(string.format("%12s \t %.5f \n",
-      result[n].word, result[n].similarity))
+    io.write(string.format("%12s \t %.5f \t %.5f \n",
+      result[n].word, result[n].similarity, bias(result[n].vector)))
   end
+
+  print("Total Bias Trend", bias(result[0]))
 end
-
-
-
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --

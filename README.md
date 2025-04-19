@@ -10,19 +10,19 @@ It this current state, filtering *mostly* works.
 
 This is only the concept "alpha" release, which is also being released with known issues.
 
-## Known issues
+## Potential issues
 
-1. Censor evaluation needs improvement. Using RMS-MAD is not the best and should be replaced.
+1. The filter is a self-supervised process without a validation method.
 
-2. Blacklist-pattern matching. Nothing inherently wrong with this, but is a bottleneck. It would be worth experiment without the blacklist method.
+2. Gradient drift. After several epochs of training, it was observed that embeddings will decay and drift from one cosine cluster to another.
 
 3. There's no way to manually trigger a positive/negative embedding adjustment. 
 
-4. Crash occurs during a very specific condition. If a word is new or relatively new (with embeddings close to the starting values), and also triggers a flag from the blacklist closure, the cosine similarity search will yield no similar words and causes a nil value on the similarities table. I added an untested next() check just as a quick fix.
+4. Will miss mutations like: `a$$` or `$#!t`, or `sh it`.
 
-5. After the inital tokenizing, the file `lib/eval_flags.txt` shows words which have been merged. This likely happens during the sanitizing.
+5. First message sets the MAD-EMA threshold, if the message is very high or low MAD the EMA may take several messages before reflecting the true average.
 
-6. Will miss mutations like: `a$$` or `$#!t`.
+6. Initial embeddings receive a default tensor of 0.3, and its gradient will reflect that of its neighbours.
 
 ## Process flow
 
@@ -31,106 +31,62 @@ A few definition generalizations before running through the process:
   - `Mean Absolute Deviation (MAD)`: used to evaluate whether a word "sticks out" in a message, as calculated from the word embeddings.
   - `Cosine Similar`: refers to either an individual word or a list of words which have similar embedding directions.
   - `Exponential Moving Average (EMA)`: A rolling average of a given value.
-  - `Root Mean Squared (RMS)`: The square root of an accumulated sum of square roots.
 
 Here's how it works, after receiving a message:
 
-1. The very first step is to update the `MAD-EMA` threshold. This will cause the very first message received to set the threshold's initial baseline.
+1. Sanitize.
 
-2. Compare the `MAD` value against the `MAD-EMA` threshold.
-  - If it is lower than the threshold, the message is not processed further and sent to chat.
+2. Set or update the `MAD-EMA` threshold.
 
-2. Run the message through the blacklist pattern search.
-  - The pattern should be loose enough to capture various mutations, ~~including numbers and symbols,~~ repeating characters and curses with prefixes and suffixes. False-positive blacklist-pattern matches are expected.
+3. Compare the `MAD` value against the `MAD-EMA` threshold.
+    - If it is lower than the threshold, the message is not processed further and sent to chat.
 
-> As i'm writing this next step, I'm realizing there is a process flow issue which can be improved or changed entirely.
+4. Individually calculate the cosine similarity words' vectors into an average.
 
-3. For each word returned from the blacklist-pattern match, gather the list of top-N `cosine similar` words, and accumulate those words' embeddings' MAD value.
+5. If the cosine similar words bias trends above the initial value of a tensor (0.3), that word in the message is censored.
 
-> Step 4 will likely change. The previous step is accumulating MAD values of flagged words, and calculating the square root of the mean will not accurately measure the intention of using the MAD values of the cosine similar words.
+6. If the `MAD-EMA` threshold was exceeded, regardless of being censored, update the embeddings using sigmoid.
 
-4. The `RMS` of the accumulated scores of the words flagged by the blacklist-pattern search is evaluated.
-
-
-> I'm just going to stop writing this here because the flow will change (again). 
-> Perhaps the RMS can be scrapped, or could be better applied (eg; not with MAD)
-> Using the MAD value of the cosine similar words is also incorrect, as it wouldn't capture the deviations of the flagged word, since their cosine similar words *are similar*.
-
+7. Every 14500 messages, clear the staging table of infrequently used words.
 
 ## Set Up
 
-  1. Populate the `blacklist.lua` with some words to be filtered.
-    - > what about the whitelist?
+  1. Create a list of common words to be ignored (`run/extract_common.lua`). Make sure to review the list and remove any curses.
 
-  2. Get a data set of chat messages or text containing curse words and non-curse words:
+  2. Add words to filter lists, whitelist, blacklist, curselist.
+    - Whitelist words will not cause the tokenizer to flag message
+    - Blacklist words will raise a flag from words matched by a loose-pattern; eg, fuck
+    - Curselist is for confirmation, and should be an exhaustive list of mutations, misspellings, and mutations (no spaces). eg, fucking, fok, fack, etc.
+    - > I realize this is over-the-top complicated, and welcome suggestions to effectively filter a large dataset with minimal false-positives.
+
+  2. Get a bunch of data of chat messages or text containing curse words and non-curse words:
 
   https://huggingface.co/datasets/declip/Minecraft-Server-Chat
 
   https://huggingface.co/datasets/darkcleopas/jigsaw-toxic-comment-multi-binary
 
-  3. Pre-process the dataset by running `$ lua init.lua eval`. This will read the dataset and tokenize lines using the blacklist pattern-matching filter.
+  3. Tokenize the dataset by running `$ lua init.lua tokenize`. This will read and tokenize lines using the blacklist pattern-matching filter. The end result is a file containing the sanitized lines prefixed with true or false:
 
-  4. Train the embeddings by running `$ lua init.lua train`. To automatically start training after tokenizing the dataset, multiple parameters are accepted from the command line: `$ lua init.lua eval train ep=10`. For a full list of parameters, run `$ lua init.lua help`
+    - `true:this message is fucked`
+    - `false:this message is not`
 
-When training is complete, there will exist `lib/tokens.lua` and `lib/embeddings.lua`.
+  4. Train the embeddings by running `$ lua init.lua train`. By default, training will run for 5 epochs, with a learn rate of 0.00001, and save a 20 dimention vector for each embedding in `lib/embeddings.lua`.
+
+  5. Run the filter process with `$ lua init.lua main`, currently accepts piped input from stdin which could be changed to read lines from file instead (line 59: `while true do  -- this is the main loop`)
 
 ___
 
-## Post-processing
+### Other stuff
 
-**Cosine Similarity Search**
++ `$ lua init.lua search=fuck`
+  - This will return with a list of similarly embedded words and their bias trend.
 
-+ To test the embeddings in the tensor matrix, run `$ lua init.lua search=fuck`. This will search the embeddings and return with a list of similarly embedded words. 
++ `run/signal.lua` contains a return statement. A running process can be terminated gracefully (triggering a save) by changing the return statement to false.
 
-+ If after training the words are not what you expect (for example, searching for `fuck` typically shouldn't return with a list of flowers and rainbows), it is recommended to retrain the embeddings for several more epochs. Run `$ lua init.lua train` and the trainer will resume training on the existing `embeddings.lua` file.
+___
 
-+ To terminate gracefully at any point in the process, from evaluation through training, by writing to `run/signal.lua` with: `return false`. This will allow the embeddings to be saved to file, and the program to quit.
+### What's next?
 
-+ Updates to tokens in `tokens.lua` won't disrupt the training process as long as there is sufficient time to train the embeddings.
-
-+ Deleting the `tokens.lua` file will force the process to generate new tokens from the dataset in the corpus directory.
-
-+ To apply the filter to a chat stream, run with `$ lua init.lua main`. This will start a session and receive input from stdin.
-
-**Previous notes**
-
-Pre-processing:
-  Messages are sanitized (lowercased, stripped of accents, symbols mapped to letters).
-
-Mean Absolute Deviation (MAD) Screening:
-  Computes the Root Mean Squared (MAD) value of word embeddings.
-
-  If MAD < threshold, the message is considered safe and skipped.
-
-  If MAD ≥ threshold, proceed to blacklist checks.
-
-Blacklist Matching:
-
-  If a blacklisted pattern is detected, words flagged by the pattern become the blacklisted context.
-
-  The MAD value of the blacklisted context is compared against the threshold.
-
-Cosine-MAD:
-
-  If the blacklisted context MAD is above the threshold, the MAD value of cosine similar words are measured against the threshold.
-
-  If the cosine-MAD determines is above the threshold, the word is determined to be vulgar and therefore censored.
-
-Tensor Updates:
-
-  Sigmoid-based learning is applied to adjust embeddings dynamically.
-
-Recent Improvements:
-
-Optimized MAD Filtering to reduce unnecessary blacklist checks.
-
-Sigmoid Function for Word Embeddings to ensure non-linear updates.
-
-Integrated Learning Mechanism using a propagation function that updates word embeddings in real time.
-
-Implemented Exponential Moving Average (EMA) to adjust the MAD threshold dynamically based on chat activity.
-
-Reduce Low-frequency words clutter the dataset using a staging system:
-  - New words start in staging_words with a default vector.
-  - After appearing 5+ times, they move to the tensor_matrix.
-  - Words in tensor_matrix that become inactive over time should be dropped, but I’m unsure how to do this efficiently without parsing the entire table.
+- Test with larger data set.
+- Figure out a better way to tokenize
+- Organize the files

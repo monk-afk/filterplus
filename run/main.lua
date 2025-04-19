@@ -1,23 +1,31 @@
--- this is the main loop, which would act as the core.on_chat_message callback
+-- this is the main loop, to become the core.on_chat_message callback
 local function on_chat_message(clip)
+  local initial_learn_rate = clip.param_learn_rate
+
   local is_censored = dofile(clip.util_blacklist)(clip)
-  local sanitize = dofile(clip.util_sanitizer)
+  local sanitize = dofile(clip.util_sanitizer)(clip)
   local update_embedding = dofile(clip.math_sigmoid)
+
   local get_cosine_similarities = dofile(clip.math_cosine)
   local get_vector, tensor_matrix, staging_words = dofile(clip.util_get_tensor)(clip)
   local get_mad, ema_mad_closure = dofile(clip.math_mad)
-  local rms_closure = dofile(clip.math_meansqrt)
+  local bias_trend = dofile(clip.math_bias_avg)
+
   local counter = dofile(clip.util_counter)()
+  local high_frequency = dofile(clip.lib_connectives)
 
   local function get_embeddings(line)
     local embeddings = {}
     local weights = {}
+
     for word in line:gmatch("%a+") do
-      local vector = get_vector(word, tensor_matrix, staging_words)
-      for n = 1, #vector do
-        weights[#weights+1] = vector[n]
+      if not high_frequency[word] then
+        local vector = get_vector(word, tensor_matrix, staging_words)
+        for n = 1, #vector do
+          weights[#weights+1] = vector[n]
+        end
+        embeddings[#embeddings+1] = {word, vector}
       end
-      embeddings[#embeddings+1] = {word, vector}
     end
 
     return embeddings, weights
@@ -26,77 +34,88 @@ local function on_chat_message(clip)
 
   io.write("Ready!\n"); io.stdout:flush()
 
-  --[[ DEBUG ]] local clr = {  -- ansii colors
-  --[[ DEBUG ]]  set   = "\27[0m",  -- reset color
-  --[[ DEBUG ]]  red   = "\27[31m",
-  --[[ DEBUG ]]  green = "\27[32m",
-  --[[ DEBUG ]]  yelo  = "\27[33m",
-  --[[ DEBUG ]]  cyan  = "\27[96m",
-  --[[ DEBUG ]] }
+  --[[ DEBUG ]] local color = dofile(clip.util_colorize) -- colors are nice
   --[[ DEBUG ]] local debug_output = {} -- debugging string
-  --[[ DEBUG ]] local function evaluate_mad(msg_mad, mad_tsh, line)
-  --[[ DEBUG ]] return msg_mad > mad_tsh and string.format("%s%.8f/%.8f%s\t%s", clr.red, msg_mad, mad_tsh, clr.set, line)
-  --[[ DEBUG ]] or string.format("%s%.8f/%.8f%s\t%s", clr.green, msg_mad, mad_tsh, clr.set, line)
+  --[[ DEBUG ]] local function evaluate_mad(msg_mad, mad_tsh, label, line)
+  --[[ DEBUG ]]   return msg_mad > mad_tsh
+  --[[ DEBUG ]]       and string.format(
+  --[[ DEBUG ]]               "%s\t%s\t%s",
+  --[[ DEBUG ]]               color("red", string.format("Thd: %.8f", mad_tsh)),
+  --[[ DEBUG ]]               color("red", string.format("%s: %.8f", label, msg_mad)),
+  --[[ DEBUG ]]               line
+  --[[ DEBUG ]]           )
+  --[[ DEBUG ]]       or string.format(
+  --[[ DEBUG ]]               "%s\t%s\t%s",
+  --[[ DEBUG ]]               label,
+  --[[ DEBUG ]]               color("green", string.format("Thd: %.8f", mad_tsh)),
+  --[[ DEBUG ]]               color("green", string.format("%s: %.8f", label, msg_mad)),
+  --[[ DEBUG ]]               line
+  --[[ DEBUG ]]           )
   --[[ DEBUG ]] end
 
-  --[[ DEBUG ]] local dump = require("dump")
+
   local update_ema_mad = ema_mad_closure()
 
   while true do  -- this is the main loop, to be replaced by core.on_chat_message()
     if not dofile(clip.run_signal) then break end -- so we can save the modified embeddings
 
-    local line = io.read():gsub("^(issued command:%s?/?%a*%s)([%S%s]+)", "%2")  -- reading from debug.txt
+    local line = io.input():read()
+    -- local line = io.read():gsub("(.*issued command:%s/%a+%s[%a]+)", ""):gsub(".*issued command: ", "") -- stream debug.txt
 
     line = sanitize(line) -- heavy sanitize, leaving only letters
 
     if line and #line > 1 then
       local embeddings, weights = get_embeddings(line)
 
-      -- the first step is to calculate the mean absolute deviation of the embedded tensors
-      local message_mad, mad_threshold = update_ema_mad(weights) -- move the bar
-      local is_positive = false -- live update the embedding's vector
+      if #embeddings > 0 then
+        -- the first step is to calculate the mean absolute deviation of the embedded tensors
+        local message_mad, mad_threshold = update_ema_mad(weights) -- move the bar
+        local is_positive = nil -- live update the embedding's vector
 
-      --[[ DEBUG ]] debug_output[1] = evaluate_mad(message_mad, mad_threshold, line)
-      if message_mad and message_mad >= mad_threshold then
-        local get_rms = rms_closure()
-        local censored_line = line
+        --[[ DEBUG ]] debug_output[1] = evaluate_mad(message_mad, mad_threshold, "MAD", line)
 
-        for flagged_word in is_censored(line) do
-          -- gather the top N cosin similar words
-          -- Fatal: if word does not have cosine similar words, errors out with nil (see also line 22: cosine_similarity.lua)
-          if flagged_word == "dickhead" then print(dump({embeddings, weights})) end -- dickhead causes the crash
-          local cosine_similarities = get_cosine_similarities(flagged_word, tensor_matrix, staging_words)
+        if message_mad and message_mad >= mad_threshold then
+          for _, embed in ipairs(embeddings) do
+            local word,vector = embed[1], embed[2]
+            local cosine_similarities = get_cosine_similarities(word, tensor_matrix, staging_words)
+            local bias_direction = bias_trend(cosine_similarities[0])
+            -- projection of the word cluster along the axis of vulgarity
+            --[[ DEBUG ]] table.insert(debug_output,
+            --[[ DEBUG ]]     evaluate_mad(bias_direction, mad_threshold, "Bias", word))
 
-          if not cosine_similarities then -- if there are none, use the embeddings of the flagged words instead
-            _, cosine_similarities = get_embeddings(flagged_word, tensor_matrix)
-          end
+            if bias_direction > 0.3 then
+              is_positive = true
+              line = string.gsub(line, word, ("*"):rep(#word))
+            end
 
-          -- accumulate mean of root-of mean absolute deviation
-          get_rms(get_mad(cosine_similarities[0]))
-
-          censored_line = string.gsub(censored_line, flagged_word, ("*"):rep(#flagged_word))
-        end
-
-        -- this sould be changed
-        if censored_line ~= line then-- and get_rms() >= mad_threshold then
-          local cosine_mad_rms = get_rms()
-
-          if cosine_mad_rms >= mad_threshold then
-            line = censored_line
-            --[[ DEBUG ]] debug_output[2] = evaluate_mad(cosine_mad_rms, mad_threshold, line)
-            is_positive = true
+            --[[ DEBUG ]] -- for n = 1, #cosine_similarities do
+            --[[ DEBUG ]] -- local debug_similarities = string.format("%12s \t %.5f \t %.5f",
+            --[[ DEBUG ]] --     cosine_similarities[n].word,
+            --[[ DEBUG ]] --     cosine_similarities[n].similarity,
+            --[[ DEBUG ]] --     bias_trend(cosine_similarities[n].vector
+            --[[ DEBUG ]] --   ))
+            --[[ DEBUG ]] --   table.insert(debug_output, debug_similarities)
+            --[[ DEBUG ]] -- end
           end
         end
+
+        if is_positive ~= nil then  -- only update embeddings if flagged by MAD
+          local learn_rate = initial_learn_rate
+          if is_positive then
+            learn_rate = learn_rate * 1.25
+          else
+            learn_rate = learn_rate * 0.75
+          end
+
+          update_embedding(tensor_matrix, staging_words, embeddings, learn_rate, is_positive)
+        end
+
+        --[[ DEBUG ]] io.write(line, "\n", table.concat(debug_output, "\n"), "\n") ; io.stdout:flush()
+        --[[ DEBUG ]] debug_output = {}
       end
-
-      -- update embeddings in real-time
-      -- need a way to trigger forced adjustment, some words get stuck in a false-neg/pos 
-      update_embedding(tensor_matrix, staging_words, embeddings, clip.param_learn_rate, is_positive)
-      --[[ DEBUG ]] io.write(table.concat(debug_output, "\n"), "\n") ; io.stdout:flush()
-      --[[ DEBUG ]] debug_output[2] = nil
     end
 
-    if counter() >= 500 then -- every 500 messages we clear the staging words
+    if counter() >= 14500 then -- every 14500 (approx 24hr) messages we clear the staging words
       counter(true) -- true to reset
       local c = dofile(clip.util_counter)() -- for debugging
       for _ in pairs(staging_words) do c() end -- debug

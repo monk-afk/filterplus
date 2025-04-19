@@ -1,48 +1,58 @@
--- pre-evaluate messages for faster training.
+-- pre-evaluate messages before training.
 local function evaluate_messages(clip)
+  local start_time = os.time()
 
   io.write("Load blacklist closure\n"); io.stdout:flush()
   local blacklist_check = dofile(clip.util_blacklist)(clip)
+
   io.write("Load whitelist closure\n"); io.stdout:flush()
   local whitelist_check = dofile(clip.util_whitelist)(clip)
+
   io.write("Load sanitizer\n"); io.stdout:flush()
-  local sanitize = dofile(clip.util_sanitizer)
+  local sanitize = dofile(clip.util_sanitizer)(clip)
 
   io.write("Assessing workload... "); io.stdout:flush()
   local total_lines = dofile(clip.util_line_count)(clip.corpus_messages)
+
   io.write("Total lines: ", total_lines, "\n"); io.stdout:flush()
+  local count = dofile(clip.util_counter)() -- local c = 0
 
-  io.open(clip.lib_tokens, "w"):write(""):close()
-
-  local flag_buffer = {}
+  local token_file = io.open(clip.lib_tokens, "r")
+  if not token_file then
+    io.open(clip.lib_tokens, "w"):write(""):close()
+  else
+    token_file:close()
+  end
 
   local token_file = io.open(clip.lib_tokens, "a")
   local token_buffer = {}
 
-  local buffer_size = 51000
-  local c = 0
+  local buffer_size = total_lines * 0.01
 
   for line in io.lines(clip.corpus_messages) do
-    c = c + 1
+    local counted_lines = count() -- c = c + 1
     local is_positive = false  -- true if censored by filter lists
-    line = sanitize(line)
+    local line = sanitize(line)
 
     if line and line ~= "" then
       for word in blacklist_check(line) do 
-        if not whitelist_check(word) then
-          flag_buffer[word] = flag_buffer[word] and flag_buffer[word] + 1 or 1
-          is_positive = true
-          -- break
-        end
+        is_positive = true
+        break
       end
 
-      table.insert(token_buffer, tostring(is_positive) .. ":" .. line .. "\n")
+      table.insert(token_buffer, string.format("%s:%s\n", tostring(is_positive), line))
 
       if #token_buffer >= buffer_size then
         token_file:write(table.concat(token_buffer))
         token_buffer = {}
+        local elapsed_time = os.time() - start_time
+        local lines_per_second = counted_lines / elapsed_time -- lines per second
 
-        io.write(string.format("%.2f%%\n", (c / total_lines) * 100)); io.stdout:flush()
+        io.write(string.format("%s %8s/%s (%.02f%%) %.2f l/s\n",
+            elapsed_time, counted_lines, total_lines, 
+            (counted_lines / total_lines) * 100,
+            lines_per_second))
+        io.stdout:flush()
       end
 
       if not dofile(clip.run_signal) then break end
@@ -53,18 +63,9 @@ local function evaluate_messages(clip)
     token_file:write(table.concat(token_buffer))
   end
   token_file:close()
-
-  local flag_file = io.open(clip.lib_evalflags, "a")
-  for word, count in pairs(flag_buffer) do
-    flag_file:write(word, " ", count, "\n")
-  end
-  flag_file:close()
 end
 
 return evaluate_messages
-
-
-
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --

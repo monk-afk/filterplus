@@ -1,3 +1,5 @@
+-- not used, keeping it here for now
+
 -- magnitude divided by the square root of the number of elements
 local function calculate_rms()
   local sum_of_squares = 0
@@ -16,9 +18,6 @@ local function calculate_rms()
 end
 
 return calculate_rms
-
-
-
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --

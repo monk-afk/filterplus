@@ -1,4 +1,5 @@
 local function sigmoid_derivative(dot_product, is_positive)
+  -- adjust gradient towards neg or pos
   local sig = 1 / (1 + math.exp(-dot_product))
   local gradient = sig * (1 - sig)
   return is_positive and -gradient or gradient
@@ -6,8 +7,8 @@ end
 
 
 local function propagate(embeddings, learn_rate, is_positive)
+  -- propagate adjustments through message embeddings
   local sum = 0
-
   for i = 1, #embeddings do
     if embeddings[i] then
       local embed_val = embeddings[i][2]
@@ -35,12 +36,12 @@ local function update_embedings(tensor_matrix, staging_words, embeddings, learn_
       local word = embeddings[n][1]
       local vector = embeddings[n][2]
 
-      if tensor_matrix[word] then
+      if tensor_matrix[word] then -- embeddings on file
         for k = 1, #vector do
           tensor_matrix[word][k] = vector[k]
         end
 
-      elseif staging_words[word] then
+      elseif staging_words[word] then  -- words not yet seen N amount
         for k = 1, #vector do
           staging_words[word].vector[k] = vector[k]
         end
@@ -51,9 +52,6 @@ local function update_embedings(tensor_matrix, staging_words, embeddings, learn_
 end
 
 return update_embedings
-
-
-
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --
