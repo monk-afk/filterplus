@@ -2,10 +2,11 @@
   -- make sure to double check the list for curses, single letters, etc
 local function extract_common_words(clip)
   io.write("Load sanitizer\n"); io.stdout:flush()
-  local sanitize = dofile(clip.util_sanitizer) -- (clip)
+  local sanitize = dofile(clip.util_sanitizer)
 
   io.write("Assessing workload... "); io.stdout:flush()
   local total_lines = dofile(clip.util_line_count)(clip.corpus_messages)
+
   io.write("Total lines: ", total_lines, "\n"); io.stdout:flush()
   local count = dofile(clip.util_counter)() -- local c = 0
 

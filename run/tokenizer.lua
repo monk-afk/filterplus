@@ -9,7 +9,7 @@ local function evaluate_messages(clip)
   local whitelist_check = dofile(clip.util_whitelist)(clip)
 
   io.write("Load sanitizer\n"); io.stdout:flush()
-  local sanitize = dofile(clip.util_sanitizer) -- (clip)
+  local sanitize = dofile(clip.util_sanitizer)
 
   io.write("Assessing workload... "); io.stdout:flush()
   local total_lines = dofile(clip.util_line_count)(clip.corpus_messages)

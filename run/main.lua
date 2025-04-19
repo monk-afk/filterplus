@@ -3,7 +3,7 @@ local function on_chat_message(clip)
   local initial_learn_rate = clip.param_learn_rate
 
   local is_censored = dofile(clip.util_blacklist)(clip)
-  local sanitize = dofile(clip.util_sanitizer) -- (clip)
+  local sanitize = dofile(clip.util_sanitizer)
   local update_embedding = dofile(clip.math_sigmoid)
 
   local get_cosine_similarities = dofile(clip.math_cosine)

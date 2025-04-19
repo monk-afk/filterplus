@@ -34,7 +34,7 @@ local function run_trainer(clip)
 
       --[[ this is meant to impact curses more strongly than non-curses, because
             non curses appear more frequently than curses ]]
-      if is_positive then  -- positive is curse, add more weight 
+      if is_positive then  -- positive is curse, add more weight
         learn_rate = learn_rate * 1.25
       else
         learn_rate = learn_rate * 0.75  -- add less weight to good words
