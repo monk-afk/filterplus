@@ -24,7 +24,7 @@ end)
 
 
 core.register_chatcommand("chat", {
-  description = "Toggle public chat, allows private messages",
+  description = "Toggle public chat while still allowing private messages",
   params = "",
   privs = {shout = true},
   func = function(name)
