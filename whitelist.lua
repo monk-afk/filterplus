@@ -1,6 +1,7 @@
   --==[[ FilterPlus 0.2.0 ]]==--
   --==[[ monk © 2023-2025 ]]==--
 return{
+"a", "e", "i", "o", "u",
 "aab",
 "aabaab",
 "aabaan",
