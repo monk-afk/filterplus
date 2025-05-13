@@ -37,7 +37,7 @@ core.register_chatcommand("chat", {
       online_players[name_lower] = false
       status = "Disabled"
     end
-    return string.format("#! %s public chat.", status)
+    return true, string.format("#! %s public chat.", status)
   end
 })
 
