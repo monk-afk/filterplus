@@ -61,7 +61,7 @@ core.register_chatcommand("block", {
   params = "<player_name>",
   privs = {shout = true},
   func = function(user, param)
-    local blocked_name = param:match("^([a-zA-Z0-9_-]+)$")
+    local blocked_name = param:match("^([a-zA-Z0-9_-]+)$") or user
 
     -- staff priv allows viewing another player's blocklist
     if core.check_player_privs(user, "staff") then
@@ -77,8 +77,14 @@ core.register_chatcommand("unblock", {
   params = "<player_name>",
   privs = {shout = true},
   func = function(user, param)
-    local blocked_name = param:match("^([a-zA-Z0-9_-]+)$")
-    return true, check_invalid_names(user, blocked_name) or unblock_player(user, blocked_name)
+    local blocked_name = param:match("^([a-zA-Z0-9_-]+)$") or user
+
+    -- staff priv allows viewing another player's blocklist
+    if core.check_player_privs(user, "staff") then
+      return true, check_invalid_names(blocked_name)
+    else
+      return true, check_invalid_names(user, blocked_name) or unblock_player(user, blocked_name)
+    end
   end
 })
 
