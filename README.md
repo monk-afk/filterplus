@@ -4,7 +4,9 @@ Filter content and censor profanity from public chat stream. Includes API for ex
 
 Copyright © 2023-2025 monk (Discord ID: 699370563235479624)
 
-[![ContentDB](https://content.minetest.net/packages/monk/filterplus/shields/downloads/)](https://content.minetest.net/packages/monk/filterplus/)
+[![ContentDB](https://content.luanti.org/packages/monk/filterplus/shields/downloads/)](https://content.luanti.org/packages/monk/filterplus/)
+
+___
 
 **Filter**
 
@@ -94,13 +96,13 @@ There are a total of four filter lists constructed by the filter.
 
 `/msg message contents`: not censored
 
-- Prefixed with `#PM:` and colored green for incoming, blue for outgoing messages.
+- Prefixed with `#/pm «PlayerName» ` and colored green for incoming, blue for outgoing messages.
 
 **`/xm`**
 
 - Proximity chat allows a distance limited conversation.
 
-- Players within 100 nodes will see these messages in a cyan color, prefixed with `#XM:`
+- Players within 100 nodes will see these messages in a cyan color, prefixed with `#/xm «PlayerName»`
 
 `/xm message contents`: Usage is similar to a private message, also not censored
 
