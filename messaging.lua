@@ -7,20 +7,21 @@ local function distance(pos_a, pos_b)
 	return math.sqrt(x * x + y * y + z * z)
 end
 
-local blocking_messages, get_player_tags
+local blocking_messages, get_player_tags, clean, filter
 
 core.register_chatcommand("xm", {
   description = "Proximity Message Only players within 100 nodes can hear",
   params = "<message>",
   privs = {shout = true},
   func = function(sender_name, message)
-    local message = message:gsub("%s+(%S+)", "%1 ")
+    local message = filter(clean(message))
+
     if #message >= 2 then
       local connected_players = core.get_connected_players()
       local sender_pos = core.get_player_by_name(sender_name):get_pos()
 
       local formatted_message = string.format(
-        "#XM:%s %s", get_player_tags(sender_name), core.colorize("#00EEAA", message)
+        "#/xm %s %s", get_player_tags(sender_name), core.colorize("#00EEAA", message)
       )
 
       for _, receiver_player in ipairs(connected_players) do
@@ -39,7 +40,7 @@ core.register_chatcommand("xm", {
 
 core.override_chatcommand("msg", {
 	description = "Send a private message to a player",
-	params = "<name> <message>",
+	params = "<recipient_name> <message>",
 	privs = {shout=true},
 	func = function(sender, param)
 		local receiver, message = param:match("^([a-zA-Z0-9_-]+)%s(.+)$")
@@ -52,18 +53,19 @@ core.override_chatcommand("msg", {
 
 		elseif not blocking_messages(sender, receiver) then
       core.chat_send_player(receiver, string.format(
-        "#PM <%s> %s", sender, core.colorize("#00EE00", message)
+        "#/pm «%s» %s", sender, core.colorize("#00EE00", message)
       ))
     end
-
-    return true, string.format("#PM <%s> %s", sender, core.colorize("#0000EE", message))
+    -- the sender isn't advised of a block if one exists, receives confirmation regardless
+    return true, string.format("#/pm «%s» %s", sender, core.colorize("#EE0066", message))
 	end
 })
 
 
-local function register_active_block_check(func_block_check, func_player_tags)
+local function register_active_block_check(func_block_check, func_player_tags, func_clean, func_filter)
   blocking_messages = func_block_check
   get_player_tags = func_player_tags
+  clean, filter = func_clean, func_filter
 end
 
 return register_active_block_check
