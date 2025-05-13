@@ -1,0 +1,45 @@
+  --==[[ FilterPlus 0.2.0 ]]==--
+  --==[[ monk © 2023-2025 ]]==--
+local function mentioned_by_name(message, online_players)
+  local mentioned_players
+  -- player names are unique independent of casing;
+  -- cannot register "MONK" if "monk" already exists
+  string.gsub(message, "[a-zA-Z0-9_-]+", function(word)
+    local name_lower = word:lower()
+
+    if online_players[name_lower] then
+      if not mentioned_players then
+        mentioned_players = {}
+      end
+
+      mentioned_players[name_lower] = true
+    end
+  end)
+
+  return mentioned_players
+end
+
+return mentioned_by_name
+------------------------------------------------------------------------------------
+-- MIT License                                                                    --
+--                                                                                --
+-- Copyright © 2023-2025 monk (Discord ID: 699370563235479624)                    --
+--                                                                                --
+-- Permission is hereby granted, free of charge, to any person obtaining a copy   --
+-- of this software and associated documentation files (the "Software"), to deal  --
+-- in the Software without restriction, including without limitation the rights   --
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell      --
+-- copies of the Software, and to permit persons to whom the Software is          --
+-- furnished to do so, subject to the following conditions:                       --
+--                                                                                --
+-- The above copyright notice and this permission notice shall be included in all --
+-- copies or substantial portions of the Software.                                --
+--                                                                                --
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR     --
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,       --
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE    --
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER         --
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,  --
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE  --
+-- SOFTWARE.                                                                      --
+------------------------------------------------------------------------------------

@@ -1,132 +1,183 @@
-FilterPlus
-----------
+# FilterPlus
 
-Primarily a chat filter, also censors content via API.
+Filter content and censor profanity from public chat stream. Includes API for external mods, moderation tools, self-regulating utilities, and more.
 
-Copyright (c) 2023 monk
+Copyright © 2023-2025 monk (Discord ID: 699370563235479624)
 
 [![ContentDB](https://content.minetest.net/packages/monk/filterplus/shields/downloads/)](https://content.minetest.net/packages/monk/filterplus/)
 
-Details
--------
+**Filter**
 
-- Blacklisted words indexed by pattern.
-- Robust Whitelist.
-- Censors words with asterisk(*).
-- Lowers casing in messages exceeding max_caps setting.
-- Support for Chat rank/tags.
-- Mention player by name sends green text messages.
-- Filter list management and chat moderation commands.
-- Removes URL links.
-- API will return true with the word censored by asterisk.
+- Multi-pass filtering logic and validation.
+- Censor profanity with asterisks(*).
+- Clean messages before broadcasting to public.
+  - Excessively long words
+  - Excessive repeating characters
+  - S p a c e d o u t w o r d s
+  - Hyperlinks, emails, phone numbers
+- Non-intrusive pre-filter string sanitizing.
+  - If not censored, message is delivered as-is.
+- Simply API callback for external mods.
 
-Chat commands
--------------
+**Plus**
 
-### **Block**
+- Chat flair with supported external mods
+- Message highlighting for players mentioned by name
+- Proximity messaging with players within 100 nodes
+- Stop unwanted messages by blocking them
+- Moderate players arguing by blocking each other
+- Moderate spammers by chat timeout
+- Toggle public chat, and still accept direct messages
 
-> This command checks for `staff` priv and prevents staff ranked players from blocking and being blocked.
+___
 
-Stop incoming messages from a player, and outgoing messages from being seen by player. Also blocks private messages from blocked players. The block is enforced until the internally managed online players table purges the player who issued the block from the online players list, approx. 1 hour after they log out.
+## Filter and Censor
 
-- Block/unblock
+Messages sent to public chat are filtered for profanity. Messages sent to other channels, such as private or group messaging, is left unfiltered.
 
-`/block <player_name>`
+There are a total of four filter lists constructed by the filter.
 
-`/unblock <player_name>`
+`blacklist_patterns.lua`: These words will be made into patterns. The list shouldn't be too long; more patterns increases processing time.
 
-- List players in your block list
+`blacklist_explicit.lua`: Explicit validation of words captured by pattern, and overrides the whitelist.
 
-`/unblock <>` (empty argument)
+`blacklist_mutations.lua`: Repurposed spell-check which will mutate words hundreds of different ways to supplement the explicit blacklist. Add words with caution.
 
-- Clear your blocklist
+`whitelist.lua`: If the context words captured are not in the whitelist, they will be censored.
 
-`/unblock <*>`
+`filter_api.lua`: This is the main script containing closures to load the filters and process incoming messages.
 
-### **Mute**
+`filter_cli.lua`: For porting or testing, a standalone version of the filter and API is provided.
 
-Disables a player from using public chat, does not mute private messaging. Applied to players by IP address, so any players currently online or alt accounts to join will be muted until the time expires. Can be used on offline players if they were online recently (approx 1 hour).
+`sanitizer.lua`: Heavy pre-filter sanitizer to facilitate the process. Messages will be sent as they were received if not censored.
 
-- Mute/Unmute player(s) by associated IP (requires `mute` priv)
-  - Default is 2 minutes, two hour max
+## Chat Commands
 
-`/mute <playername> [<minutes>]`
+**`/block`**
 
-`/unmute <playername>`
+> Two-way blocking of incoming and outgoing messages. Will prevent all message types, public and private, from being seen by the blocker and blocked.
 
+> Remains in effect until unblocked or server shutdown. Future updates will include saving the block-list to mod storage.
 
-### **Filter List management**
+`/block` or `/unblock`: Without parameter will show your list of blocked players.
+  - Players with `staff` privilege are not able to block or be blocked. Using the block command with player name will list the player's block list.
 
-- Manage mod_storage filter lists (requires `blacklist` priv)
+`/block player_name` or `/unblock player_name`: Add or remove another player from your blocked-players list.
 
-`/filter <blacklist>|<whitelist>|<delete>|<search> <string>`
+`/forceblock player_name1 player_name2`: Add two players to each other's block list. Requires `mute` privilege.
 
-- Add word to whitelist, or blacklist (will automatically remove word from opposite list)
+**`/mute`**
 
-`/filter whitelist word`
+- Timeout player from using public chat.
 
-`/filter blacklist word`
+- Does not mute private messaging, faction messages, or proximity chat.
 
-- Delete word from all filter lists (bug: it doesn't)
+- Retroactively applied to alt-accounts using a 24-hour cache.
 
-`/filter delete word`
+`/mute player_name minutes`: Defaults to 2 minutes if no parameter is provided, and 120 minutes maximum
 
-- Search for word in either filter lists
+`/unmute player_name`: To allow using public chat before timeout expires.
 
-`/filter search word`
+**`/chat`**
 
-- Save filters to mod_storage from memory after making changes to filters via command (blacklist, whitelist)
+- Toggle seeing the public chat channel.
 
-`/filter_save <whitelist>|<blacklist>`
+- Direct messages and group messages (eg, faction and proximity) are not affected.
 
-- To restore the filters, override the filter lists mod_storage or Lua file:
+`/chat`: No parameter is needed
 
-`/filter_reload <mod_storage>|<file>`
+**`/msg`**
 
-### **Private Message**
+- Overrides the default `/msg` command for compatibility with FilterPlus features
 
-Overrides the default `/msg` command to allow blocking private messages. Additionally, a "`to: <player>`" message shows in the sender's chat when a private message is sent.
+- Shows the sender their own message after it is sent.
 
-Message Tags
-------------
-Player nametag in chat default format is: `<PlayerName>`.
+`/msg message contents`: not censored
 
-Supported tags from mods if available: Ranks, Factions, Exp.
+- Prefixed with `#PM:` and colored green for incoming, blue for outgoing messages.
 
-The minetest.conf setting must be true, and pass required values.
+**`/xm`**
 
-- `filterplus_ranks`: `{Rank}` requires a string and ColorString
-- `filterplus_factions`: `[Faction]` requires a string and ColorString 
-- `filterplus_exp`: `(Exp)` requires integer or string
+- Proximity chat allows a distance limited conversation.
 
-Tag order is: `{Rank}[Faction](Exp)<PlayerName> message`
+- Players within 100 nodes will see these messages in a cyan color, prefixed with `#XM:`
 
+`/xm message contents`: Usage is similar to a private message, also not censored
 
-API
----
-Not limited to chat messages. Strings from any mod can be checked against filter api:
+___
 
-`filterplus_api.check_word(string)`
+## Nametag and Flair
 
-This will return with the string, censored or not, with boolean:
+Nametag default format is: `«PlayerName»`.
 
-`return "This **** is censored", true`
+Supports tags from mods if available: Ranks, Factions, Exp.
 
-`return "This word is not censored", false`
+Ensure the `minetest.conf` has the setting enabled, and that a callback exists in the global namespace:
 
+```conf
+# minetest.conf
+filterplus_ranks = true
+filterplus_factions = true
+filterplus_exp = true
+```
 
-Additional Info
----------------
-- **UTF-16 or non-ASCII characters**
-> Adding words by command containing UTF-8 characters are saved to mod_storage as UTF reference codes (\u00f). This will cause many false-positives. Workaround this by adding these words to the *list.lua files, then run `/filter_reload`
+```lua
+-- nametag_flair.lua
+local factions_available = core.settings:get_bool("filterplus_factions") and
+    core.global_exists("factions") == true
+```
 
+A supporting mod should have a callback to provide variables to be used as the nametag flair.
 
-- **Pattern matches from blacklist are ordered**
+There should only be two variables provided: text, and optional color.
 
-> Filter lists are sorted by numerical index, not alphabetically. This allows for word priority when list checking, for example, if `luck` and `luk` are blacklisted, saying `lucky` will catch the former first.
+For example, the Factions mod would have a callback defined within itself. FilterPlus will attempt to call the external mod, expecting to receive a hex color and a text string:
 
-> If `tex` is a blacklisted word, all instances containing `tex` are filtered, such as `text`, `context`, `contextual`, etc. This means blacklisting these branch words is redundant, root words should be sufficient.
+```lua
+-- ensure compatibility with your mod
+local get_player_faction = factions_available and factions.is_player_in or function() return nil end
 
+-- expects a string, and hexadecimal color
+local faction_name, faction_color = get_player_faction(name)
 
-##
-Current Version **`0.1.5`**
+-- the resulting flair will appear as colored string in brackets, eg: [Fraction]
+local faction_tag = faction_name and "[" .. colorize((faction_color or "#FFFFFF"), faction_name) .. "]" or ""
+```
+
+The default ordering of supported flair tags is: `{Rank}[Faction](Exp)«PlayerName» `
+
+___
+
+## Highlighted Mentions
+
+Messages containin online player's name will be sent to the mentioned player as green text. If many players are mentioned, they will each receive green text.
+
+___
+
+## API
+
+To filter and censor content from external mods, such as signs or login names, include a callback containing the string to be filtered in the external mod:
+
+`filterplus.filter_check("Some text to be filtered")`
+
+The API will return the string, censored or not, with boolean `true` or `nil` to indicate whether the string was censored:
+
+`return "Some text to be ********", true`
+
+or
+
+`return "Some text to be filtered", nil`
+
+___
+
+## CLI
+
+The file named `filter_cli.lua` can be run as an independent tool, and can be imported to other applications if desired.
+
+Simply run from terminal: `lua filter_cli.lua`
+
+Receives user input and display the output of the filter as well as the API result.
+
+___
+
+Version `0.2.0`
