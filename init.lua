@@ -24,7 +24,10 @@ local online_players = get_online_players()
 local function on_chat_message(sender_name, message)
   if not sender_name then return true end  -- is this necessary?
 
-  if is_player_muted(sender_name) then return "#! You are muted." end
+  if is_player_muted(sender_name) then
+    core.chat_send_player(sender_name, "#! You are muted.")
+    return true
+  end
 
   if not online_players[sender_name] then
     core.chat_send_player(sender_name, "#! Your chat is off. Use /chat to enable chat.")
