@@ -1,7 +1,7 @@
   --==[[ FilterPlus 0.2.0 ]]==--
   --==[[ monk © 2023-2025 ]]==--
   -- Used under license:
-  -- !!!!!!!!!!!! REMEMBER THE GITHUB LINK
+  -- https://github.com/pakozm/lua-spell-correct
   -- Copyright 2014 Francisco Zamora-Martinez
   -- Adaptation of Peter Norvig python Spelling Corrector:
   -- http://norvig.com/spell-correct.html
