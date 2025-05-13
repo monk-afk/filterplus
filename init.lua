@@ -16,20 +16,21 @@ local is_player_muted, sync_muted_player_onjoin = dofile(modpath .. "muting.lua"
 -- keep track of online players for utility functionality
 local get_online_players = dofile(modpath .. "online_players.lua")(sync_muted_player_onjoin)
 -- private message override, proximity messaging
-dofile(modpath .. "messaging.lua")(blocking_messages, get_player_tags)
+dofile(modpath .. "messaging.lua")(blocking_messages, get_player_tags, clean, filter)
 
 local colorize = core.colorize
+
 local online_players = get_online_players()
 
 local function on_chat_message(sender_name, message)
-  if not sender_name then return true end  -- is this necessary?
+  if not sender_name and message then return true end
 
   if is_player_muted(sender_name) then
     core.chat_send_player(sender_name, "#! You are muted.")
     return true
   end
 
-  if not online_players[sender_name] then
+  if not online_players[sender_name:lower()] then
     core.chat_send_player(sender_name, "#! Your chat is off. Use /chat to enable chat.")
     return true
   end
