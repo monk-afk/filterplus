@@ -45,7 +45,7 @@ local function check_invalid_names(user, blocked_name)
   if not blocked_name or user == blocked_name then
     return get_blocklist(user)
 
-  elseif not core.player_exists(blocked_name) or
+  elseif not core.player_exists(blocked_name) then
     return "#! Player <" .. blocked_name .. "> does not exist."
 
   elseif not core.player_exists(user) then
