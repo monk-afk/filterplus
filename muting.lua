@@ -36,12 +36,18 @@ end
 
 -- apply mute time against ip and any connected alt account
 local function sync_mute_time_on_command(name, time)
-  muted_players[muted_players[name]] = time
-  -- if name_or_ip is a player name, time_or_ip will be a time.
+  -- update the linked index with the new time
+  local linked_ip = muted_players[name]
+  muted_players[linked_ip] = time
+
+  -- if name_or_ip is a player name, time_or_ip will be an IP.
   -- if name_or_ip is an ip address, time_or_ip will be a time.
   for name_or_ip, time_or_ip in pairs(muted_players) do
-    local ip_timestamp = muted_players[muted_players[time_or_ip]]
-    if ip_timestamp and ip_timestamp + 86400 < os.time() then -- 
+    -- if time_or_ip is a unix timestamp, this will be nil
+    local cached_ip_link = muted_players[time_or_ip]
+    local indexed_ip_timestamp = muted_players[cached_ip_link]
+
+    if indexed_ip_timestamp and indexed_ip_timestamp + 86400 < os.time() then -- 
       muted_players[name_or_ip] = nil
     end
   end
