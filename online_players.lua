@@ -44,9 +44,7 @@ core.register_chatcommand("chat", {
 -- register function from external file, and return the closure function to init.lua
 local function load_sync_function(sync_muted_onjoin_func)
   sync_muted_player_onjoin = sync_muted_onjoin_func
-  return function()
-    return online_players
-  end
+  return online_players
 end
 
 return load_sync_function
