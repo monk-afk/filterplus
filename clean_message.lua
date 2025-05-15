@@ -23,15 +23,14 @@ end
 
 local function clean_message(str)
   -- lowercase everything
-  str = join_spaced(str:lower())
-
-  str = str:gsub("h*t*t*p*s*:*/*/*%S+%.+%S+%.*%S%S%S?/*%S*%s?", "https://squareone.moe") -- strip hyperlinks
-           :gsub("%a+%s?@%s?%a+%s?%.%s?%a+", "") -- email
-           :gsub("1?0?%s?%(?%d%d%d%d?%)?%s?%-?%d%d%d%d?%s?%-?%d%d%d%d", "100") -- phone numbers
-           :gsub("%a+", function(word) return word:sub(1, 23) end) -- cut words longer than 23 letters
+  str = join_spaced(str:lower()) -- str:lower() is depended on by online_players
+      :gsub("h*t*t*p*s*:*/*/*%S*%.?[%a%d_-]+%.%a%a%a?/*%S*", "")-- strip hyperlinks
+      :gsub("[%a%p%d]+@[%a%p%d]+%.%a%a%a?", "")-- email
+      :gsub("1?0?%s?%(?%d%d%d%d?%)?%s?%-?%d%d%d%d?%s?%-?%d%d%d%d", "")-- phone numbers
+      :gsub("[%a%p%d]+", function(word) return word:sub(1, 23) end)-- cut words longer than 23 letters
 
   while true do -- for excessive repeating characters
-    local mstr = str:gsub("(%a%a*)(%1%1)", "%2")
+    local mstr = str:gsub("([%a%p%d][%a%p%d])(%1%1)", "%2")
     if mstr ~= str then str = mstr else break end
   end
 

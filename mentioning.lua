@@ -5,14 +5,13 @@ local function mentioned_by_name(message, online_players)
   -- player names are unique independent of casing;
   -- cannot register "MONK" if "monk" already exists
   string.gsub(message, "[a-zA-Z0-9_-]+", function(word)
-    local name_lower = word:lower()
-
-    if online_players[name_lower] then
+    -- we're already lower casing with the clean() function
+    if online_players[word] then
       if not mentioned_players then
         mentioned_players = {}
       end
 
-      mentioned_players[name_lower] = true
+      mentioned_players[word] = true
     end
   end)
 
