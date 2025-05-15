@@ -19,17 +19,17 @@ ___
   - Hyperlinks, emails, phone numbers
 - Non-intrusive pre-filter string sanitizing.
   - If not censored, message is delivered as-is.
-- Simply API callback for external mods.
+- Simple API callback for external mods.
 
 **Plus**
 
-- Chat flair with supported external mods
 - Message highlighting for players mentioned by name
 - Proximity messaging with players within 100 nodes
 - Stop unwanted messages by blocking them
 - Moderate players arguing by blocking each other
 - Moderate spammers by chat timeout
 - Toggle public chat, and still accept direct messages
+- Optional nametag flair from external mods
 
 ___
 
@@ -51,15 +51,27 @@ There are a total of four filter lists constructed by the filter.
 
 `filter_cli.lua`: For porting or testing, a standalone version of the filter and API is provided.
 
-`sanitizer.lua`: Heavy pre-filter sanitizer to facilitate the process. Messages will be sent as they were received if not censored.
+`sanitizer.lua`: Heavy pre-filter sanitizer to facilitate the process. Messages will be sent as they were received if not censored. Before curse detection, the sanitizing function will:
+  1. Replace symbols and non-standard ascii to a alphabetic equivalent
+  2. Merge words with hyphens and apostrophes (you're -> your)
+  3. Replace embedded number with alphabetic equivalent
+  4. Replace any remaining non-letter symbols with a space
+  5. Strip away excess spaces
+
+`clean_message.lua`: A pre-sanitizing function intended to remove spammy formatting and content from a message before sanitizing. It can be used independent from the filter and will modify a string by:
+  1. Lower-casing the entire string
+  2. Join words separated with s p a c e s
+  3. Strip hyperlinks, email address, phone numbers
+  4. Clip words exceeding 23 characters
+  5. Remove excess repeated charactersssssss
 
 ## Chat Commands
 
 **`/block`**
 
-> Two-way blocking of incoming and outgoing messages. Will prevent all message types, public and private, from being seen by the blocker and blocked.
+- Stop public and private messages from being delivered.
 
-> Remains in effect until unblocked or server shutdown. Future updates will include saving the block-list to mod storage.
+- Persistent between logins until unblocked or server shutdown.
 
 `/block` or `/unblock`: Without parameter will show your list of blocked players.
   - Players with `staff` privilege are not able to block or be blocked. Using the block command with player name will list the player's block list.
@@ -94,7 +106,7 @@ There are a total of four filter lists constructed by the filter.
 
 - Shows the sender their own message after it is sent.
 
-`/msg message contents`: not censored
+`/msg message contents`: **not censored**
 
 - Prefixed with `#/pm «PlayerName» ` and colored green for incoming, blue for outgoing messages.
 
@@ -104,11 +116,13 @@ There are a total of four filter lists constructed by the filter.
 
 - Players within 100 nodes will see these messages in a cyan color, prefixed with `#/xm «PlayerName»`
 
-`/xm message contents`: Usage is similar to a private message, also not censored
+`/xm message contents`: Usage is similar to a private message, **is censored**
+
+> Note: to disable censoring /xm messages, modify the register_on_chatcommand from:
 
 ___
 
-## Nametag and Flair
+## Nametag Flair
 
 Nametag default format is: `«PlayerName»`.
 
@@ -142,7 +156,7 @@ local get_player_faction = factions_available and factions.is_player_in or funct
 -- expects a string, and hexadecimal color
 local faction_name, faction_color = get_player_faction(name)
 
--- the resulting flair will appear as colored string in brackets, eg: [Fraction]
+-- the resulting flair will appear as colored string in brackets, eg: [Faction]
 local faction_tag = faction_name and "[" .. colorize((faction_color or "#FFFFFF"), faction_name) .. "]" or ""
 ```
 
@@ -152,7 +166,7 @@ ___
 
 ## Highlighted Mentions
 
-Messages containin online player's name will be sent to the mentioned player as green text. If many players are mentioned, they will each receive green text.
+Messages containing online player's name will be sent to the mentioned player as green text. If many players are mentioned, they will each receive green text.
 
 ___
 
