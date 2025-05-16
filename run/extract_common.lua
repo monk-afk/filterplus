@@ -1,6 +1,14 @@
-  -- extracts the top 500 most commonly used words from the corpus
-  -- make sure to double check the list for curses, single letters, etc
+-- extracts the top 500 most commonly used words from the corpus
+
+-- add to init.lua:
+  -- clip.run_extract   = run_dir .. "extract_common.lua"     -- extract most common words
+  -- elseif clip.extract then -- extract common words
+  --   return dofile(clip.run_extract)(clip)
+-- then run `lua init.lua extract`
+
+-- todo: run through filter and limit words by length
 local function extract_common_words(clip)
+  local max_words = 500
   io.write("Load sanitizer\n"); io.stdout:flush()
   local sanitize = dofile(clip.util_sanitizer)
 
@@ -51,7 +59,7 @@ local function extract_common_words(clip)
 
   local file = io.open(clip.lib_common_words, "w")
 
-  local max = math.min(#sorted_vocab, 500)
+  local max = math.min(#sorted_vocab, max_words)
 
   file:write("return {\n")
   for n = 1, max do
