@@ -1,5 +1,5 @@
 local version_string = [[
-  FilterPlus      | 0.4.0-dev
+  FilterPlus      | 0.4.1-alpha
   MIT © 2025 monk | https://github.com/monk-afk/filterplus
 ]]
 
@@ -15,13 +15,13 @@ if clip.help or clip.h then
 end
 
 clip.param_epochs        = tonumber(clip.ep) or 1       -- repeating the training session
-clip.param_learn_rate    = tonumber(clip.lr) or 0.0000001 -- learn rate
-clip.param_vector_layers = tonumber(clip.dim) or 20     -- embedded vector dimentions
+clip.param_learn_rate    = tonumber(clip.lr) or 0.00001 -- learn rate
+clip.param_vector_layers = tonumber(clip.dim) or 5     -- embedded vector dimentions
 
 clip.corpus_messages = corpus_dir .. "messages.txt" -- see readme for links to online corpuses
 
-clip.run_signal    = run_dir .. "signal.lua"             -- graceful exit signal if return is false
-if not dofile(clip.run_signal) then  -- "return false" to terminate gracefully
+clip.run_signal = run_dir .. "signal.lua"  -- graceful exit signal if return is false
+if not dofile(clip.run_signal) then  -- overwrite file with "return false" to exit
   io.open(clip.run_signal, "w"):write("return true"):close()
 end
 
@@ -34,21 +34,22 @@ clip.math_cosine    = math_dir .. "cosine_similarity.lua"        -- similar dire
 clip.math_mad       = math_dir .. "mean_absolute_deviation.lua"  -- magnitute value or frequency
 clip.math_bias_avg  = math_dir .. "bias_trend.lua"               -- average trend of embedded weights
 
-clip.util_sanitizer   = util_dir .. "sanitizer.lua"        -- heavy sanitizing strings
-clip.util_get_tensor  = util_dir .. "get_tensor.lua"       -- fetch tensor from embeddings or staging
 clip.util_save_table  = util_dir .. "save_table.lua"       -- table saving
-
 clip.util_line_count  = util_dir .. "line_count.lua"       -- count lines in file
 clip.util_counter     = util_dir .. "counter_closure.lua"  -- closure for counting
 
-clip.util_blacklist = util_dir .. "blacklist_closure.lua"  -- blacklist pattern construct
-clip.util_whitelist = util_dir .. "whitelist_closure.lua"  -- it would be best to not need this
+clip.util_sanitizer   = util_dir .. "sanitizer.lua"        -- heavy sanitizing strings
+clip.util_get_tensor  = util_dir .. "get_tensor.lua"       -- fetch tensor from embeddings or staging
+clip.util_frame_words = util_dir .. "rolling_window.lua"   -- experimental context-based embedding
 
 clip.util_colorize  = util_dir .. "colorize.lua"  -- ansi string output: color("red", string)
 
+clip.util_blacklist = util_dir .. "blacklist_closure.lua"  -- blacklist pattern construct
+clip.util_mutations = util_dir .. "blacklist_mutations.lua"
+
 clip.lib_whitelist   = lib_dir .. "whitelist.lua"     -- list of non-vulgar words (negatives)
-clip.lib_blacklist   = lib_dir .. "blacklist.lua"     -- list of vulgar words (positives)
-clip.lib_strictlist  = lib_dir .. "curselist.lua"     -- confirmation list of known cureses (for tokenizing)
+clip.lib_blacklist_patterns = lib_dir .. "blacklist_patterns.lua"
+clip.lib_blacklist_explicit = lib_dir .. "blacklist_explicit.lua"
 
 clip.lib_embeddings  = lib_dir .. "embeddings.lua"    -- the embeddings table (will be created if non-existent)
 clip.lib_tokens      = lib_dir .. "tokens.lua"        -- blacklist-whitelist evaluated messages
@@ -86,7 +87,7 @@ end
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --
--- Copyright © 2025 monk                                                          --
+-- Copyright © 2025 monk (Discord ID: 699370563235479624)                         --
 --                                                                                --
 -- Permission is hereby granted, free of charge, to any person obtaining a copy   --
 -- of this software and associated documentation files (the "Software"), to deal  --
