@@ -1,40 +1,55 @@
+local function whitelist_closure(clip)
+  local whitelist = {}
+  for a, word in ipairs(dofile(clip.lib_whitelist)) do
+    whitelist[word] = true
+  end
+  return function(word)
+    return whitelist[word]
+  end
+end
+
 local function blacklist_closure(clip)
-  local blacklist = {}
-  local frontier = {}
-  local blacklist_strict = {}
+  local blacklist_explicit = {}
 
-  -- exhaustive compilation of all words to be matched 1:1
-  for f, word in ipairs(dofile(clip.lib_strictlist)) do
-    blacklist_strict[word] = true
+  for n, word in ipairs(dofile(clip.lib_blacklist_explicit)) do
+    blacklist_explicit[word] = true
   end
 
-  -- loose pattern to capture context of flagged words
-  for n, word in ipairs(dofile(clip.lib_blacklist)) do
-    blacklist[word] = "(%a-" .. word:gsub(".", "%1+%%s?") .. "%a*i*n*g*e*d*r*s*)"
+  for f, word in ipairs(dofile(clip.util_mutations)()) do
+    blacklist_explicit[word] = true
   end
 
-  -- for isolating the blacklisted word in the flagged context
-  for n, word in ipairs(dofile(clip.lib_blacklist)) do
-    local f = "^(" .. word:sub( 1, 1) .. "+%s?"
-    for c = 2, #word -1 do
-      f = f .. word:sub(c, c) .. "+" .. "%s?"
-    end
-    frontier[word] = f .. word:sub(-1, -1) .. "+%a-i*n*g*e*d*r*s*)$"
+  local blacklist_patterns = {}
+  for b, word in ipairs(dofile(clip.lib_blacklist_patterns)) do
+    blacklist_patterns[word] = "(%a*%s?" .. word:gsub(".", "%1+%%s?") .. "%a*i*n*g*e*d*r*s*)"
   end
 
-  local whitelist_check = dofile(clip.util_whitelist)(clip)
+  local blacklist_isolate = {}
+  for s, word in ipairs(dofile(clip.lib_blacklist_patterns)) do
+    blacklist_isolate[word] = ".*(%f[%a]%a-" .. word:gsub(".", "%1+") .. "%a-i*n*g*e*d*r*s*)%f[%A].*"
+  end
 
-  return function(str)
-    local is_positive = false
-    return coroutine.wrap(function()
-      for blacklisted_word, pattern in pairs(blacklist) do
-        for flagged_context in str:gmatch(pattern) do
-          local isolated_flag = flagged_context:gsub(frontier[blacklisted_word], "%1")
-          for word in string.gmatch(isolated_flag, "%a+") do
-            if blacklist_strict[word]
-                or blacklist_strict[flagged_context:gsub("%s", "")]
-                or not whitelist_check(word) then
-              coroutine.yield(word)
+  local whitelist_check = whitelist_closure(clip)
+
+  return function(message)
+    return coroutine.wrap(function() 
+      for blacklisted_word, pattern in pairs(blacklist_patterns) do
+        for flagged_context in message:gmatch(pattern) do
+            -- if we can isolate the curse word, it's likely a true positive
+          local isolated_word = flagged_context:match(blacklist_isolate[blacklisted_word])
+          if isolated_word and blacklist_explicit[isolated_word] then
+            coroutine.yield(isolated_word)
+            -- is the context a known vulgarity
+          elseif blacklist_explicit[flagged_context] or
+              blacklist_explicit[flagged_context:gsub("%s", "")] then
+            coroutine.yield(flagged_context)
+          else -- now check each word in the context
+            for context_word in string.gmatch(flagged_context, "%a+") do
+                -- if the context word has not been whitelisted
+              if not whitelist_check(context_word) or
+                  blacklist_explicit[context_word] then
+                coroutine.yield(context_word)
+              end
             end
           end
         end
@@ -43,11 +58,27 @@ local function blacklist_closure(clip)
   end
 end
 
-return blacklist_closure
+local function filter_closure(clip)
+  local sanitizer = dofile(clip.util_sanitizer)
+  local filter_message = blacklist_closure(clip)
+  return function(message)
+    local sanitized_message = sanitizer(message)
+    local is_censored
+    if sanitized_message and sanitized_message ~= "" then
+      for word in filter_message(sanitized_message) do
+        return true -- true is vulgar
+      end
+      return false  -- false is not vulgar
+    end
+    return nil -- nil if completely wiped by sanitizer
+  end
+end
+
+return filter_closure
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --
--- Copyright © 2025 monk                                                          --
+-- Copyright © 2023-2025 monk (Discord ID: 699370563235479624)                    --
 --                                                                                --
 -- Permission is hereby granted, free of charge, to any person obtaining a copy   --
 -- of this software and associated documentation files (the "Software"), to deal  --

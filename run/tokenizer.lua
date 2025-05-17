@@ -5,9 +5,6 @@ local function evaluate_messages(clip)
   io.write("Load blacklist closure\n"); io.stdout:flush()
   local blacklist_check = dofile(clip.util_blacklist)(clip)
 
-  io.write("Load whitelist closure\n"); io.stdout:flush()
-  local whitelist_check = dofile(clip.util_whitelist)(clip)
-
   io.write("Load sanitizer\n"); io.stdout:flush()
   local sanitize = dofile(clip.util_sanitizer)
 
@@ -31,28 +28,26 @@ local function evaluate_messages(clip)
 
   for line in io.lines(clip.corpus_messages) do
     local counted_lines = count() -- c = c + 1
-    local is_positive = false  -- true if censored by filter lists
     local line = sanitize(line)
 
+
     if line and line ~= "" then
-      for word in blacklist_check(line) do 
-        is_positive = true
-        break
-      end
+    -- true if vulgar, false not vulgar, nil not processed (over sanitized)
+      local is_positive = blacklist_check(line)
+      if is_positive ~= nil then
+        table.insert(token_buffer, string.format("%s:%s\n", tostring(is_positive), line))
 
-      table.insert(token_buffer, string.format("%s:%s\n", tostring(is_positive), line))
+        if #token_buffer >= buffer_size then
+          token_file:write(table.concat(token_buffer))
+          token_buffer = {}
+          local elapsed_time = os.time() - start_time
+          local lines_per_second = counted_lines / elapsed_time -- lines per second
 
-      if #token_buffer >= buffer_size then
-        token_file:write(table.concat(token_buffer))
-        token_buffer = {}
-        local elapsed_time = os.time() - start_time
-        local lines_per_second = counted_lines / elapsed_time -- lines per second
-
-        io.write(string.format("%s %8s/%s (%.02f%%) %.2f l/s\n",
-            elapsed_time, counted_lines, total_lines, 
-            (counted_lines / total_lines) * 100,
-            lines_per_second))
-        io.stdout:flush()
+          io.write(string.format("%s %8s/%s (%.02f%%) %.2f l/s\n",
+              elapsed_time, counted_lines, total_lines, 
+              (counted_lines / total_lines) * 100, lines_per_second))
+          io.stdout:flush()
+        end
       end
 
       if not dofile(clip.run_signal) then break end

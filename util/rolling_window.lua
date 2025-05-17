@@ -1,16 +1,60 @@
--- moved to blacklist_closure.lua
-local function whitelist_closure(clip)
-  local whitelist = {}
-  for n, word in ipairs(dofile(clip.lib_whitelist)) do
-    whitelist[word] = true
-  end
+-- rolling_window.lua
+--[[ experimenting with a rolling frame for embeddings rather than individual words.
+      will need a lean way to store the data
+]]
 
-  return function(word)
-    return whitelist[word]
+local function insert_nested(frames, frame)
+  local current = frames  -- start at the top
+  for _, key in ipairs(frame) do
+    -- create or traverse the nest
+    current[key] = current[key] or {} 
+    -- move further into the nest
+    current = current[key]
   end
+  -- last key gets the value, this could be the embedded vector
+  -- local count = current[current] or 1
+  -- current[current] = count + 1
 end
 
-return whitelist_closure
+
+local function frame_words(message, frames)
+  if message and message ~= "" then
+    local frame_size = 3
+    local words = {}
+    message:gsub("%a+", function(word)
+      table.insert(words, word)
+    end)
+
+    if not words or #words < 1 then
+      return nil
+    end
+
+    frames = frames or {}
+
+    for i = 1, (#words - math.min(#words, frame_size) + 1) do
+      local frame = {table.unpack(words, i, i + math.min(#words, frame_size) - 1)}
+      insert_nested(frames, frame)
+    end
+
+    return frames
+  end
+end
+-- -- to iterate, for example
+-- local function print_table(tbl)
+--   local tmp = {}
+--   for key, val in pairs(tbl) do
+--       -- check if the value is a table first. 
+--     if type(val) == "table" then
+--       print(key)
+--       print_table(val) -- recurse
+--     else
+--       io.write(table.concat(tmp, " "), val, "\n")
+--     end
+--   end
+-- end
+-- print_table(frames, " ")
+
+return frame_words
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --

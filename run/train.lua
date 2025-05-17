@@ -1,5 +1,5 @@
+-- train.lua
 -- pre-process, create and train word embeddings
-
 -- run tokenizer first to tokenize lines
 local function run_trainer(clip)
   local ost = os.time()
@@ -9,7 +9,9 @@ local function run_trainer(clip)
   local blacklist_check = dofile(clip.util_blacklist)(clip)
   local add_gradient    = dofile(clip.math_sigmoid)
   local save_table      = dofile(clip.util_save_table)
-  local high_frequency  = dofile(clip.lib_connectives)
+  -- local high_frequency  = dofile(clip.lib_connectives)  -- on the fence about this
+  -- experimenting with rolling frames. also add to tokenizer?
+  -- local frame_words  = dofile(clip.util_frame_words)
 
   local counter = dofile(clip.util_counter)()
   local total_lines = dofile(clip.util_line_count)(clip.lib_tokens)
@@ -42,11 +44,13 @@ local function run_trainer(clip)
 
       local embeddings = {}
 
+      -- for _,window in ipairs(frame_words(line, embeddings)) do
+        -- for _,word in ipairs(window) do
       for word in string_gmatch(line, "%a+") do
-        if not high_frequency[word] then
-          local word_tensor = check_for_word(word, tensor_matrix, staging_words)
-          embeddings[#embeddings+1] = {word, word_tensor}
-        end
+        -- if not high_frequency[word] then -- it's difficult to say whether omitting high frequency words is helping
+        local word_tensor = check_for_word(word, tensor_matrix, staging_words)  -- get embeddings
+        embeddings[#embeddings+1] = {word, word_tensor}
+        -- end
       end
 
       add_gradient(tensor_matrix, staging_words, embeddings, learn_rate, is_positive) -- calculate new embedded values
@@ -61,6 +65,7 @@ local function run_trainer(clip)
               tensor_matrix[embedded_word][k] = updated_vector[k]
             end
 
+          -- table structure is slightly different for staging words
           elseif staging_words[embedded_word] then
             for k = 1, #updated_vector do
               staging_words[embedded_word].vector[k] = updated_vector[k]
@@ -70,7 +75,9 @@ local function run_trainer(clip)
       end
 
       local count = counter()
-      if count % 20000 == 0 then
+      -- higher wipe threshold makes for more staging words to be added to embeddings file
+      local wipe_stage_after_count = 14200
+      if count % wipe_stage_after_count == 0 then
         local c = dofile(clip.util_counter)()
         for _ in pairs(staging_words) do
           c()
@@ -80,25 +87,24 @@ local function run_trainer(clip)
                 epoch, (count / total_lines) * 100,
                 os.time() - ost, c() - 1
               )); io.stdout:flush()
-
-        staging_words = {}
+        --[[ not clearing the staging table causes embeddings file to be heavy
+             it's not clear if clearing staging_words helps overall
+        ]]
+        -- staging_words = {}
       end
 
       if not dofile(clip.run_signal) then break end
     end
 
-    save_table(tensor_matrix, clip.lib_embeddings)
+    save_table(tensor_matrix, clip.lib_embeddings) -- saves the embeddings after every epoch
   end
 end
 
 return run_trainer
-
-
-
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --
--- Copyright © 2025 monk                                                          --
+-- Copyright © 2025 monk (Discord ID: 699370563235479624)                         --
 --                                                                                --
 -- Permission is hereby granted, free of charge, to any person obtaining a copy   --
 -- of this software and associated documentation files (the "Software"), to deal  --
