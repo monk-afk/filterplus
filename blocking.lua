@@ -33,16 +33,20 @@ local function get_blocklist(name)
     for blocked_name,_ in pairs(blocklist) do
       table.insert(blocks, blocked_name)
     end
-    return "#! <" .. name .. "> Blocked list: " .. table.concat(blocks, ", ")
+    return "#! <" .. name .. ">'s Block list: " .. table.concat(blocks, ", ")
 
   else
-    return "#! <" .. name .. "> No Players Blocked!"
+    return "#! <" .. name .. ">'s Block list: No Players Blocked!"
   end
 end
 
 
 local function check_invalid_names(user, blocked_name)
-  if not blocked_name or user == blocked_name then
+  -- fail check if this function returns anything besides false or nil
+  if not user then
+    return "#! Please include a Player Name!"
+  
+  elseif not blocked_name or blocked_name == "" or user == blocked_name then
     return get_blocklist(user)
 
   elseif not core.player_exists(blocked_name) then
@@ -55,7 +59,7 @@ local function check_invalid_names(user, blocked_name)
       core.check_player_privs(user, "staff") then
     return "#! Staff cannot block or be blocked."
   end
-  return nil
+  -- returned nil allows the caller to continue
 end
 
 core.register_chatcommand("block", {
@@ -95,7 +99,7 @@ core.register_chatcommand("forceblock", {
   params = "<player_name> <player_name>",
   privs = {mute = true},
   func = function(user, param)
-    local name_one, name_two = param:match("^([a-zA-Z0-9_-]+)%s+([a-zA-Z0-9_-]+)$")
+    local name_one, name_two = param:match("([a-zA-Z0-9_-]+)%s*([a-zA-Z0-9_-]*)")
     return true, check_invalid_names(name_one, name_two) or
         block_player(name_one, name_two) and block_player(name_two, name_one) 
   end
