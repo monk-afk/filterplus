@@ -1,22 +1,27 @@
-  --==[[ FilterPlus 0.2.0 ]]==--
+  --==[[ FilterPlus 0.3.0 ]]==--
   --==[[ monk © 2023-2025 ]]==--
 local modpath = core.get_modpath(core.get_current_modname()) .. "/"
+
 -- player mentions highlight message in greentext
 local find_mentioned_players = dofile(modpath .. "mentioning.lua")
+
 -- nametag flair, ranks, level, faction
 local get_player_tags = dofile(modpath .. "nametag_flair.lua")
+
 -- block and forceblock
 local blocking_messages = dofile(modpath .. "blocking.lua")
--- clean messages
-local clean = dofile(modpath .. "clean_message.lua")
--- filtered messages
+
+-- filtering messages
 local filter = dofile(modpath .. "filter_api.lua")(modpath)
+
 -- muted players by ip
 local is_player_muted, sync_muted_player_onjoin = dofile(modpath .. "muting.lua")
--- keep track of online players for utility functionality
+
+-- keep track of online players
 local online_players = dofile(modpath .. "online_players.lua")(sync_muted_player_onjoin)
+
 -- private message override, proximity messaging
-dofile(modpath .. "messaging.lua")(blocking_messages, get_player_tags, clean, filter)
+dofile(modpath .. "messaging.lua")(blocking_messages, get_player_tags, filter)
 
 local colorize = core.colorize
 
@@ -30,14 +35,14 @@ local function on_chat_message(sender_name, message)
     core.chat_send_player(sender_name, "#! Your chat is off. Use /chat to enable chat.")
     return true
   end
-  
-  local message = filter(clean(message))
 
-  if #message < 2 then return true end
+  local filtered_message = filter(message)
+
+  if not filtered_message or #filtered_message < 2 then return true end
 
   local player_tags = get_player_tags(sender_name)
 
-  local mentioned_players = find_mentioned_players(message, online_players)
+  local mentioned_players = find_mentioned_players(filtered_message, online_players)
 
   for receiver_name_lower, receiver_name in pairs(online_players) do
     if online_players[receiver_name_lower] then
@@ -48,7 +53,7 @@ local function on_chat_message(sender_name, message)
           message_color = "#00EE00"
         end
 
-        core.chat_send_player(receiver_name, player_tags .. colorize(message_color, message))
+        core.chat_send_player(receiver_name, player_tags .. colorize(message_color, filtered_message))
       end
     end
   end
@@ -58,13 +63,22 @@ end
 
 core.register_on_chat_message(on_chat_message)
 
--- there's a better way to do this
+-- API for external mods, returns the filtered string
+filterplus = {}
+
+filterplus.filter_check = function(str)
+  return filter(str)
+end
+
+
+-- reload filter and reconstruct lists
 core.register_chatcommand("filter_reload", {
   description = "Reload the chat filters",
   params = "",
   privs = {server = true},
   func = function(user)
     filter = dofile(modpath .. "filter_api.lua")(modpath)
+    return true, "FilterPlus Reloaded!"
   end
 })
 ------------------------------------------------------------------------------------

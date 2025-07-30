@@ -1,4 +1,4 @@
-  --==[[ FilterPlus 0.2.0 ]]==--
+  --==[[ FilterPlus 0.3.0 ]]==--
   --==[[ monk © 2023-2025 ]]==--
 local function distance(pos_a, pos_b)
 	local x = pos_a.x - pos_b.x
@@ -7,16 +7,16 @@ local function distance(pos_a, pos_b)
 	return math.sqrt(x * x + y * y + z * z)
 end
 
-local blocking_messages, get_player_tags, clean, filter
+local blocking_messages, get_player_tags, filter
 
 core.register_chatcommand("xm", {
   description = "Proximity Message Only players within 100 nodes can hear",
   params = "<message>",
   privs = {shout = true},
-  func = function(sender_name, message)
-    local message = filter(clean(message))
+  func = function(sender_name, original_message)
+    local message = filter(original_message)
 
-    if #message >= 2 then
+    if message and #message >= 2 then
       local connected_players = core.get_connected_players()
       local sender_pos = core.get_player_by_name(sender_name):get_pos()
 
@@ -62,10 +62,10 @@ core.override_chatcommand("msg", {
 })
 
 
-local function register_active_block_check(func_block_check, func_player_tags, func_clean, func_filter)
+local function register_active_block_check(func_block_check, func_player_tags, func_filter)
   blocking_messages = func_block_check
   get_player_tags = func_player_tags
-  clean, filter = func_clean, func_filter
+  filter = func_filter
 end
 
 return register_active_block_check

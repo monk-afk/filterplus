@@ -1,4 +1,4 @@
-  --==[[ FilterPlus 0.2.0 ]]==--
+  --==[[ FilterPlus 0.3.0 ]]==--
   --==[[ monk © 2023-2025 ]]==--
 local function mentioned_by_name(message, online_players)
   local mentioned_players

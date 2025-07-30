@@ -1,4 +1,4 @@
-  --==[[ FilterPlus 0.2.0 ]]==--
+  --==[[ FilterPlus 0.3.0 ]]==--
   --==[[ monk © 2023-2025 ]]==--
 local factions_available = core.settings:get_bool("filterplus_factions") and
     core.global_exists("factions") == true

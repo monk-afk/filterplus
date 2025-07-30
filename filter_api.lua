@@ -1,109 +1,132 @@
-  --==[[ FilterPlus 0.2.0 ]]==--
+  --==[[ FilterPlus 0.3.0 ]]==--
   --==[[ monk © 2023-2025 ]]==--
-local function whitelist_closure(modpath)
-  local whitelist = {}
-  for a, word in ipairs(dofile(modpath.."whitelist.lua")) do
-    whitelist[word] = true
-  end
-  return function(word)
-    return whitelist[word]
-  end
-end
+  -- 💩⚡ based on ngram scoring
+local frequencies
+local new_mad
+local new_rms
 
-local function blacklist_closure(modpath)
-  -- build patterns for initial capture
-  local blacklist_patterns_file = modpath .. "blacklist_patterns.lua"
-  -- list of words for explicit comparison (no pattern)
-  local blacklist_explicit_file = modpath .. "blacklist_explicit.lua"
-  -- supplement explicit list with frequently mutated words
-  local get_mutations = modpath .. "blacklist_mutations.lua"
+local function get_score(word)
+  local mad = new_mad() -- open a new closure
+  local rms = new_rms()
+  local word_len = #word
 
-  local blacklist_explicit = {}
-  for n, word in ipairs(dofile(blacklist_explicit_file)) do
-    blacklist_explicit[word] = true
-  end
+  -- [[ DEBUG ]] core.log("action", "[nG] " .. word)
 
-  for f, word in ipairs(dofile(get_mutations)()) do
-    blacklist_explicit[word] = true -- "(" .. word:gsub(".", "%1+") .. ")"
-  end
+  for n = 1, 3 do -- for gram sizes of 2, 3 and 4
+    local sigma_black = 0
+    local sigma_white = 0
 
-  -- loose pattern to capture context of flagged words
-  local blacklist_patterns = {}
-  for b, word in ipairs(dofile(blacklist_patterns_file)) do
-    blacklist_patterns[word] = "(%a*%s?" .. word:gsub(".", "%1+%%s?") .. "%a*i*n*g*e*d*r*s*)"
-  end
+    for pos = 1, word_len - n do
+      local gram = word:sub(pos, pos + n)
+      local shifted_pos = (word_len - pos + 1) / word_len -- prefix adds more weight
+      local weight = shifted_pos * #gram  -- gram position * length of gram
 
-  -- for isolating the blacklisted word in the flagged context
-  local blacklist_isolate = {}
-  for s, word in ipairs(dofile(blacklist_patterns_file)) do
-    blacklist_isolate[word] = ".*(%f[%a]%a-" .. word:gsub(".", "%1+") .. "%a-i*n*g*e*d*r*s*)%f[%A].*"
-  end
+      local b = frequencies["blacklist"][gram] or 0
+      sigma_black = sigma_black + (b * weight)
 
-  local whitelist_check = whitelist_closure(modpath)
+      local w = frequencies["whitelist"][gram] or 0.1
+      sigma_white = sigma_white + (w * weight)
 
-  return function(message)
-    return coroutine.wrap(function() 
-      for blacklisted_word, pattern in pairs(blacklist_patterns) do
-        for flagged_context in message:gmatch(pattern) do
-
-          -- if we can isolate the curse word, it's likely a true positive
-          local isolated_word = flagged_context:match(blacklist_isolate[blacklisted_word])
-          if isolated_word and blacklist_explicit[isolated_word] then
-            coroutine.yield(isolated_word)
-
-            -- is the context a known vulgarity
-          elseif blacklist_explicit[flagged_context] or
-              blacklist_explicit[flagged_context:gsub("%s", "")] then
-            coroutine.yield(flagged_context)
-
-          else -- now check each word in the context
-            for context_word in string.gmatch(flagged_context, "%a+") do
-              -- if the context word has not been whitelisted
-              if not whitelist_check(context_word) or
-                  blacklist_explicit[context_word] then
-                coroutine.yield(context_word)
-              end
-            end
-          end
-        end
-      end
-    end)
-  end
-end
-
-
-local function filter_closure(modpath)
-  local sanitizer = dofile(modpath .. "sanitizer.lua")
-  local filter_message = blacklist_closure(modpath)
-
-  return function(message)
-    local sanitized_message = sanitizer(message)
-    local is_censored
-    if sanitized_message and sanitized_message ~= "" then
-      for word in filter_message(sanitized_message) do
-        sanitized_message = string.gsub(sanitized_message, word, ("*"):rep(#word))
-        is_censored = true
-      end
-      message = is_censored and sanitized_message or message
+      -- [[ DEBUG ]] core.log("action", string.format(
+      -- [[ DEBUG ]] "[nG] %s:\t WL: Freq: %s, Sigma: %s \t|\t BL: Freq: %s, Sigma: %s",
+      -- [[ DEBUG ]] gram, w, sigma_white, b, sigma_black))
     end
-    return message, is_censored
+
+    local frequency_bias = sigma_black / (sigma_white + 1)
+    rms(frequency_bias) --  accumulated ngram score
+    mad(frequency_bias)
+
+    --[[ DEBUG ]] core.log("action", "[nG] Frequency Bias: " .. frequency_bias)
   end
+  return mad(), rms()  -- nil triggers the closure return
 end
 
 
-filterplus = {}
-
-local function load_filter(modpath)
-  local filter = filter_closure(modpath)
-  -- api
-  filterplus.filter_check = function(str)
-    return filter(str)
+local function is_listed_closure(word_lists)
+  return function(list_type, word)
+    return word_lists[list_type].index[word]
   end
-
-  return filter
 end
 
-return load_filter
+local is_word_listed
+local ema_mad
+local ema_rms
+
+local function filter_message(word)
+  local letters = #word
+
+  if letters > 1 then
+    if is_word_listed("white", word) then
+      return word -- skip whitelist matches
+
+    elseif is_word_listed("black", word) then
+      return ("*"):rep(letters) -- skip blacklist matches (includes 2 char words)
+
+    elseif letters >= 3 then -- check anything over 2 letters
+      local deviation, magnitude = get_score(word)
+      local mad_threshold = ema_mad(deviation)
+      local rms_threshold = ema_rms(magnitude)
+      --[[ DEBUG ]] local logline = string.format(
+      --[[ DEBUG ]]     "[FilterPlus] Word: %s | MAD: %.8f (t: %.8f) | RMS: %.8f (t: %.8f)",
+      --[[ DEBUG ]]     word, deviation, mad_threshold, magnitude, rms_threshold
+      --[[ DEBUG ]]   )
+      --[[ DEBUG ]] core.log("action", logline)
+      if magnitude > rms_threshold and deviation > mad_threshold then
+        return ("*"):rep(letters)  -- censored if above both thresholds
+      end
+    end
+  end
+  return word
+end
+
+
+local function register_on_chat(modpath)
+  local word_lists = dofile(modpath .. "constructors.lua")(modpath)
+
+  frequencies = {
+    ["whitelist"] = word_lists.white.freqs,
+    ["blacklist"] = word_lists.black.freqs
+  }
+
+  local sanitize = dofile(modpath .. "sanitizer.lua")
+  local clean = dofile(modpath .. "clean.lua")
+
+  is_word_listed = is_listed_closure(word_lists)
+
+  ema_mad = dofile(modpath .. "ema.lua")(0.4) -- a threshold for each evaluation metric
+  ema_rms = dofile(modpath .. "ema.lua")(0.3)
+
+  new_mad = dofile(modpath .. "mad.lua")
+  new_rms = dofile(modpath .. "rms.lua")
+
+  core.log("action", "[FilterPlus] Ready for input!")
+  return function(original_message)
+    if original_message and #original_message >= 2 then
+      original_message = original_message:gsub("%s%s+", " ")
+
+      local cleaned_message = clean(original_message) -- removes spammy text
+      -- [[ DEBUG ]] core.log("action", "[FilterPlus] Scrubbed: " .. cleaned_message)
+      local sanitized_message = sanitize(cleaned_message) -- if censored, message is sent with heavy sanitization
+      -- [[ DEBUG ]] core.log("action", "[FilterPlus] Sanitized: " .. sanitized_message)
+
+      if sanitized_message and sanitized_message ~= "" then
+        local censored_message = sanitized_message:gsub("%a+", filter_message)
+        local is_censored = (sanitized_message ~= censored_message)
+
+        local outgoing_message = is_censored and censored_message
+            or cleaned_message
+
+        return outgoing_message, is_censored
+      end
+
+      return cleaned_message
+    end
+
+    return original_message
+  end
+end
+
+return register_on_chat
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --

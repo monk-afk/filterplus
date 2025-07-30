@@ -1,43 +1,20 @@
-  --==[[ FilterPlus 0.2.0 ]]==--
+  --==[[ FilterPlus 0.3.0 ]]==--
   --==[[ monk © 2023-2025 ]]==--
--- joins words with s p a c e s
-local function join_spaced(str)
-  local str = " " .. str .. " "
-  local spaced_out = str:match("%s(%a)%s%a%s%a%s")
-
-  if spaced_out then
-    local merged = spaced_out
-    local function m(s) merged = s end
-
-    while true do
-      local mstr = str:gsub("(" .. merged .. ")%s((%a)%s)", function(a,s,b)
-        m(a .. b)
-        return a .. s
-      end)
-      if mstr ~= str then str = mstr else break end
+-- magnitude divided by the square root of the number of elements
+local function root_mean_squared()
+  local sum_of = 0
+  local points = 0
+  -- closure allows accumulating weights before squaring the root
+  return function(score)
+    if not score then
+      return math.sqrt(sum_of / points)
     end
+    points = points + 1
+    sum_of = sum_of + (score * score)
   end
-  return str:match("%s?(.+)%s?")
 end
 
-
-local function clean_message(str)
-  -- lowercase everything
-  str = join_spaced(str:lower()) -- str:lower() is depended on by online_players
-      :gsub("h*t*t*p*s*:*/*/*%S*%.?[%a%d_-]+%.%a%a%a?/*%S*", "")-- strip hyperlinks
-      :gsub("[%a%p%d]+@[%a%p%d]+%.%a%a%a?", "")-- email
-      :gsub("1?0?%s?%(?%d%d%d%d?%)?%s?%-?%d%d%d%d?%s?%-?%d%d%d%d", "")-- phone numbers
-      :gsub("[%a%p%d]+", function(word) return word:sub(1, 23) end)-- cut words longer than 23 letters
-
-  while true do -- for excessive repeating characters
-    local mstr = str:gsub("([%a%p%d][%a%p%d])(%1%1)", "%2")
-    if mstr ~= str then str = mstr else break end
-  end
-
-  return str
-end
-
-return clean_message
+return root_mean_squared
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --

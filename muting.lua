@@ -1,4 +1,4 @@
-  --==[[ FilterPlus 0.2.0 ]]==--
+  --==[[ FilterPlus 0.3.0 ]]==--
   --==[[ monk © 2023-2025 ]]==--
 core.register_privilege("mute", "Grants usage of mute and forceblock command.")
 

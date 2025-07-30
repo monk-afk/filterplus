@@ -1,211 +1,59 @@
-  --==[[ FilterPlus 0.2.0 ]]==--
+  --==[[ FilterPlus 0.3.0 ]]==--
   --==[[ monk © 2023-2025 ]]==--
-  --[[ contains words from which patterns are constructed ]]
-return {
-"asexual",
-"asshole",
-"ass",
-"azz",
+-- to extract and quantify morphemes from a corpus
+local function word_grammer()
+  return function(word)
+    return coroutine.wrap(function()
+      for n = 1, 3 do -- do this for each gram size.
+        for pos = 1, #word - n do
+          local gram = word:sub(pos, pos + n)
+          coroutine.yield(gram)
+        end
+      end
+    end)
+  end
+end
 
-"babe",
-"bastard",
-"basterd",
-"batard",
-"beyatch",
-"bisexual",
-"bisex",
-"bitch",
-"bich",
-"bith",
-"bish",
-"bnrtbl", -- russian blyan
-"boner",
-"boob",
-"btch",
+-- for counting the frequency of ngrams
+local function count_grams(contents, frequencies)
+  local grammer = word_grammer()
+  for _, word in ipairs(contents) do
+    for gram in grammer(word) do
+      local freq = frequencies[gram] or 0
+      frequencies[gram] = freq + 1
+    end
+  end
+  return frequencies
+end
 
-"cabron",
-"cago",
-"cagu",
-"carmiel",
-"chig",
-"ching",
-"chinga",
-"chingada",
-"chinh",
-"chupa",
-"cock",
-"cojen",
-"cojines",
-"cojones",
-"cojon",
-"coon",
-"culo",
-"cunt",
-"cyca",
-"cyka",
 
-"dick",
-"dike",
-"dck",
-"dik",
-"dildo",
-"dommes",
-"dumbass",
-"dyke",
-"fuga",
-"diddy",
-"fugafuga",
-"hdp",
-"erotic",
+local function populate_tables(modpath)
+  local word_lists = {
+    white = {array = dofile(modpath .. "whitelist.lua"), index = {}},
+    black = {array = dofile(modpath .. "blacklist.lua"), index = {}},
+  }
 
-"fuck",
-"fack",
-"fock",
-"foc",
-"fvck",
-"fick",
-"fxck",
-"fawk",
-"fyke",
-"faggot",
-"fag",
-"fuc",
-"fuk",
-"fck",
-"fuq",
+  for _, word in ipairs(word_lists.white.array) do
+    word_lists.white.index[word] = true
+  end
 
-"gae",
-"gay",
-"genital",
-"gey",
-"gringo",
-"grope",
-"gspot",
-"gyat",
+  for _, word in ipairs(word_lists.black.array) do
+    if not word_lists.white.index[word] then
+      word_lists.black.index[word] = true
+    end
+  end
 
-"hentai",
-"hijps",
-"homo",
-"hooker",
-"horny",
-"hostia",
-"hovno",
-"hump",
-"hure",
+  -- populate ngram frequency tables
+  for list_color, list_type in pairs(word_lists) do
+    word_lists[list_color]["freqs"] = {}
+    local array_list = word_lists[list_color].array
+    local frequencies = word_lists[list_color].freqs
+    word_lists[list_color].freqs = count_grams(array_list, frequencies)
+  end
 
-"incest",
-
-"jder",
-"jebac",
-"jod",
-"joder",
-"juema",
-"juemadre",
-"jueputa",
-"jueputo",
-"juepvta",
-"juepvto",
-
-"lesbian",
-"lesb",
-"lgbtq",
-"lbg",
-"lgb",
-"lpt",
-
-"marde",
-"marica",
-"maricon",
-"mecke",
-"merde",
-"mierd",
-"mierda",
-"milf",
-"moriel",
-"motherfuck",
-"mrd",
-
-"nazi",
-"niga",
-"nigga",
-"nigger",
-"nipple",
-"niqa",
-
-"orgasm",
-
-"paedo",
-"pantie",
-"panty",
-"pedo",
-"pedophile",
-"pendej",
-"pendejito",
-"pendejo",
-"penis",
-"perra",
-"phuta",
-"phuto",
-"pizda",
-"playboy",
-"poon",
-"porn",
-"ptm",
-"pubes",
-"pussi",
-"pussy",
-"puta",
-"puto",
-"putta",
-"puttazo",
-"pvta",
-"pvto",
-"pvttazo",
-
-"queaf",
-"queef",
-"queer",
-"quif",
-"quim",
-
-"raping",
-"rapist",
-"rape",
-
-"semen",
-"seks",
-"segs",
-"sex",
-"sxy",
-"shit",
-"shat",
-"shet",
-"sht",
-"skank",
-"skeet",
-"slut",
-"slvt",
-"smut",
-"sodom",
-"stfu",
-"swastika",
-
-"tangina",
-"tarado",
-"tit",
-"tosser",
-"tran",
-"twat",
-
-"vagin",
-"vajina",
-"verga",
-
-"whore",
-
-"zhit",
-"zickig",
-}
+  return word_lists 
+end
+return populate_tables
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --

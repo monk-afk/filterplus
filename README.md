@@ -10,66 +10,65 @@ ___
 
 **Filter**
 
-- Multi-pass filtering logic and validation.
-- Censor profanity with asterisks(*).
-- Clean messages before broadcasting to public.
-  - Excessively long words
-  - Excessive repeating characters
-  - S p a c e d o u t w o r d s
-  - Hyperlinks, emails, phone numbers
-- Non-intrusive pre-filter string sanitizing.
-  - If not censored, message is delivered as-is.
-- Simple API callback for external mods.
+- Novel filtering logic using n-gram scoring
+- Censors profanity with asterisks(*)
+- Cleans messages of spammy text
+- Non-intrusive pre-filter heavy sanitizing
+- Easy integration API callback for external mods
 
 **Plus**
 
 - Message highlighting for players mentioned by name
-- Proximity messaging with players within 100 nodes
+- Proximity chat command with players within 100 nodes
 - Stop unwanted messages by blocking them
 - Moderate players arguing by blocking each other
 - Moderate spammers by chat timeout
-- Toggle public chat, and still accept direct messages
-- Optional nametag flair from external mods
+- Toggle public chat via command without disabling private channels
+- Support for nametag flair from external mods
 
 ___
 
 ## Filter and Censor
 
-Messages sent to public chat are filtered for profanity. Messages sent to other channels, such as private or group messaging, is left unfiltered.
+`filter_api.lua`: This is the main file to load the filter lists and process incoming messages.
 
-There are a total of four filter lists constructed by the filter.
+Every string processed by the filter first undergoes a cleaning function to remove spammy formatting and content from a message:
 
-`blacklist_patterns.lua`: These words will be made into patterns. The list shouldn't be too long; more patterns increases processing time.
-
-`blacklist_explicit.lua`: Explicit validation of words captured by pattern, and overrides the whitelist.
-
-`blacklist_mutations.lua`: Repurposed spell-check which will mutate words hundreds of different ways to supplement the explicit blacklist. Add words with caution.
-
-`whitelist.lua`: If the context words captured are not in the whitelist, they will be censored.
-
-`filter_api.lua`: This is the main script containing closures to load the filters and process incoming messages.
-
-`filter_cli.lua`: For porting or testing, a standalone version of the filter and API is provided.
-
-`sanitizer.lua`: Heavy pre-filter sanitizer to facilitate the process. Messages will be sent as they were received if not censored. Before curse detection, the sanitizing function will:
-  1. Replace symbols and non-standard ascii to a alphabetic equivalent
-  2. Merge words with hyphens and apostrophes (you're -> your)
-  3. Replace embedded number with alphabetic equivalent
-  4. Replace any remaining non-letter symbols with a space
-  5. Strip away excess spaces
-
-`clean_message.lua`: A pre-sanitizing function intended to remove spammy formatting and content from a message before sanitizing. It can be used independent from the filter and will modify a string by:
+`clean.lua`: 
   1. Lower-casing the entire string
   2. Join words separated with s p a c e s
   3. Strip hyperlinks, email address, phone numbers
   4. Clip words exceeding 23 characters
   5. Remove excess repeated charactersssssss
 
+Then the message is sanitized before being evaluated. Messages will be sent as they were received if not censored.
+
+`sanitizer.lua`
+  1. Replace symbols and non-standard ascii to a alphabetic equivalent
+  2. Merge words with hyphens and apostrophes (you're -> your)
+  3. Replace embedded number with alphabetic equivalent
+  4. Replace any remaining non-letter symbols with a space
+  5. Strip away excess spaces
+
+Messages are evaluated by using a scoring system based on `n-gram frequency` with `gram-positional weight`.
+
+An 'n-gram' is basically a part of a word, the gram, and n is a number. If we say 2-gram (or bi-gram) that means every two letters in a word:
+
+`word`: "wo", "or", "rd"
+
+From our whitelist and blacklist words, we count and tally the grams of 2, 3, and 4, which will become our gram-frequencies.
+
+This means for words like "fuck", the grams which occur in that word would be less frequent in the whitelist than the blacklist. For non-vulgar words, the opposite is true.
+
+The filter then calculates the deviation and magnitude of a word's n-gram score, and compares them against a variable threshold.
+
+This system allows profanity detection without relying on hard-coded pattern matching, and becomes resistant to mutation, character substitution, and partial obfuscation.
+
 ## Chat Commands
 
-**`/block`**
+**Blocking**
 
-- Stop public and private messages from being delivered.
+- Ignore all public and private messages from being delivered.
 
 - Persistent between logins until unblocked or server shutdown.
 
@@ -80,7 +79,7 @@ There are a total of four filter lists constructed by the filter.
 
 `/forceblock player_name1 player_name2`: Add two players to each other's block list. Requires `mute` privilege.
 
-**`/mute`**
+**Muting**
 
 - Timeout player from using public chat.
 
@@ -92,25 +91,25 @@ There are a total of four filter lists constructed by the filter.
 
 `/unmute player_name`: To allow using public chat before timeout expires.
 
-**`/chat`**
+**Toggle Chat**
+
+`/chat`
 
 - Toggle seeing the public chat channel.
 
 - Direct messages and group messages (eg, faction and proximity) are not affected.
 
-`/chat`: No parameter is needed
+**Direct Message**
 
-**`/msg`**
+`/msg recipient_name message contents`
 
 - Overrides the default `/msg` command for compatibility with FilterPlus features
 
 - Shows the sender their own message after it is sent.
 
-`/msg message contents`: **not censored**
-
 - Prefixed with `#/pm «PlayerName» ` and colored green for incoming, blue for outgoing messages.
 
-**`/xm`**
+**Proximity Chat**
 
 - Proximity chat allows a distance limited conversation.
 
@@ -124,11 +123,9 @@ ___
 
 ## Nametag Flair
 
-Nametag default format is: `«PlayerName»`.
+Nametag default format is: `«PlayerName»`. Built-in support from mods if available: Ranks, Factions, Exp.
 
-Supports tags from mods if available: Ranks, Factions, Exp.
-
-Ensure the `minetest.conf` has the setting enabled, and that a callback exists in the global namespace:
+Ensure the `minetest.conf` has the setting enabled, and that the receiving mod exists in the global namespace:
 
 ```conf
 # minetest.conf
@@ -143,9 +140,7 @@ local factions_available = core.settings:get_bool("filterplus_factions") and
     core.global_exists("factions") == true
 ```
 
-A supporting mod should have a callback to provide variables to be used as the nametag flair.
-
-There should only be two variables provided: text, and optional color.
+A supported mod should have a callback to provide only two variables: text, and optional color.
 
 For example, the Factions mod would have a callback defined within itself. FilterPlus will attempt to call the external mod, expecting to receive a hex color and a text string:
 
@@ -176,7 +171,7 @@ To filter and censor content from external mods, such as signs or login names, i
 
 `filterplus.filter_check("Some text to be filtered")`
 
-The API will return the string, censored or not, with boolean `true` or `nil` to indicate whether the string was censored:
+The API will return the string, censored or not, with booleans `true`, and `nil` or `false` to indicate whether the string was censored. A `false` return would indicate the string was filtered and not censored, while a `nil` return indicates the string was not filtered. All strings containing two or more characters will at the least be returned "cleaned".
 
 `return "Some text to be ********", true`
 
@@ -186,14 +181,12 @@ or
 
 ___
 
-## CLI
+## Limitations
 
-The file named `filter_cli.lua` can be run as an independent tool, and can be imported to other applications if desired.
+- Single-word filtering misses context where two words are benign individually but profane when coupled together.
 
-Simply run from terminal: `lua filter_cli.lua`
-
-Receives user input and display the output of the filter as well as the API result.
+- False-positives are difficult to forsee
 
 ___
 
-Version `0.2.0`
+Version `0.3.0`

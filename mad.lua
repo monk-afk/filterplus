@@ -1,53 +1,25 @@
   --==[[ FilterPlus 0.3.0 ]]==--
   --==[[ monk © 2023-2025 ]]==--
--- track players with disabled chat, and quicker lookup for name mentions
-local online_players = {}
+local function mean_absolute_deviation()
+  local sum = 0
+  local count = 0
+  local values = {}
 
-local sync_muted_player_onjoin
-
-local function add_or_remove_online(player, status)
-  local name = player and player:get_player_name()
-  -- if status = false, chat is disabled
-  online_players[name:lower()] = status and name or status
-  if status then
-    sync_muted_player_onjoin(name)
-  end
-end
-
-core.register_on_joinplayer(function(player)
-  add_or_remove_online(player, true)
-end)
-
-core.register_on_leaveplayer(function(player)
-  add_or_remove_online(player, nil)
-end)
-
-
-core.register_chatcommand("chat", {
-  description = "Toggle public chat while still allowing private messages",
-  params = "",
-  privs = {shout = true},
-  func = function(name)
-    local name_lower = name:lower()
-    local status
-    if not online_players[name_lower] then
-      online_players[name_lower] = name
-      status = "Enabled"
-    else
-      online_players[name_lower] = false
-      status = "Disabled"
+  return function(x) -- accumulate the values
+    if not x then  -- call with nil when finished
+      local mean = sum / count
+      local mad = 0
+      for i = 1, count do
+        mad = mad + math.abs(values[i] - mean)
+      end
+      return mad / count
     end
-    return true, string.format("#! %s public chat.", status)
+    count = count + 1
+    values[count] = x
+    sum = sum + x
   end
-})
-
--- register function from external file, and return the closure function to init.lua
-local function load_sync_function(sync_muted_onjoin_func)
-  sync_muted_player_onjoin = sync_muted_onjoin_func
-  return online_players
 end
-
-return load_sync_function
+return mean_absolute_deviation
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --

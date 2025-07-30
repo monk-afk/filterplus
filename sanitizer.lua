@@ -1,6 +1,8 @@
-  --==[[ FilterPlus 0.2.0 ]]==--
+  --==[[ FilterPlus 0.3.0 ]]==--
   --==[[ monk © 2023-2025 ]]==--
 local accent_map = {
+  ["ș"] = "s",
+  ["ă"] = "a",
   ["Я"] = "r",
   ["я"] = "r",
   ["ю"] = "lo",
@@ -31,8 +33,8 @@ local accent_map = {
   ["с"] = "c",
   ["Р"] = "p",
   ["р"] = "p",
-  ["П"] = "n",
-  ["п"] = "n",
+  ["П"] = "h",
+  ["п"] = "h",
   ["О"] = "o",
   ["о"] = "o",
   ["Н"] = "h",
@@ -54,8 +56,8 @@ local accent_map = {
   ["ё"] = "e",
   ["Е"] = "e",
   ["е"] = "e",
-  ["Д"] = "a",
-  ["д"] = "a",
+  ["Д"] = "d",
+  ["д"] = "d",
   ["Г"] = "r",
   ["г"] = "r",
   ["В"] = "b",
@@ -64,7 +66,7 @@ local accent_map = {
   ["б"] = "b",
   ["А"] = "a",
   ["а"] = "a",
-  ["μ"] = "u",
+  ["μ"] = "m",
   ["α"] = "f",
   ["ŉ"] = "n",
   ["Þ"] = "p",
@@ -115,7 +117,6 @@ local accent_map = {
   ["Ť"] = "t",
   ["ť"] = "t",
   ["ß"] = "s",
-  ["ß"] = "b",
   ["Ş"] = "s",
   ["ş"] = "s",
   ["Š"] = "s",
@@ -290,13 +291,17 @@ local accent_map = {
   ["₥"] = "m",
   ["₣"] = "f",
   ["£"] = "f",
+  -- ["#"] = "h",
   ["$"] = "s",
+  -- ["*"] = "a",
   ["@"] = "a",
   ["!"] = "i",
   ["’"] = "'",
   ["‘"] = "'",
   ["¡"] = "i",
   ["!"] = "i",
+  ["†"] = "t",
+  ["®"] = "r",
 }
 
 local number_map = {
@@ -313,14 +318,16 @@ local number_map = {
 
 local function sanitize(str)
   if str and str ~= "" then
-    str = str--[[ :lower() ]]
-      :gsub("[%z\1-\127\194-\244][\128-\191]*", function(c) return accent_map[c] or c end)
-      :gsub("(%a+)[-,'`](%a+%f[%A])", "%1%2") -- merge words with apostrophes, i'll, you're, etc
+    str = str:gsub("[%z\1-\127\194-\244][\128-\191]*", function(c) return accent_map[c] or c end)
       :gsub("(%a?)(%d+)(%a?)", function(pref, char, suff)     -- fix some l33t words
-          return pref .. (number_map[tostring(char)] or char) .. suff
-      end)
-      :gsub("[^%a%s]+", " ")  -- replace remaining non-letter with a space
-      :gsub("%s%s+", " "):gsub("^%s", ""):gsub("%s$","")  -- strip extra spaces
+          return pref .. (number_map[tostring(char)] or char) .. suff end)
+      :gsub("[^%a%s]+", "")  -- remove remaining non-letters
+      :gsub("%s+", " ")
+
+    while true do -- remove anything more than two repeating letters, they make false positive
+      local mstr = str:gsub("([%a])(%1%1)", "%2")
+      if mstr ~= str then str = mstr else break end
+    end
   end
   return str
 end
