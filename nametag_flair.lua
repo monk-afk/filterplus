@@ -9,8 +9,8 @@ local ranks_available = core.settings:get_bool("filterplus_ranks") and
 local get_player_rank = ranks_available and ranks.get_player_rank or function() return nil end
 
 local exp_available = core.settings:get_bool("filterplus_exp") and
-    core.global_exists("exp2") == true
-local get_player_level = exp_available and exp2.fetch_data or function() return nil end
+    core.global_exists("exp2_api") == true
+local get_player_level = exp_available and exp2_api.get_player_exp_data or function() return nil end
 
 local colorize = core.colorize
 
@@ -23,8 +23,8 @@ local function get_player_tags(name)
   local faction_name, faction_color = get_player_faction(name)
   local faction_tag = faction_name and "[" .. colorize((faction_color or "#FFFFFF"), faction_name) .. "]" or ""
 
-  local player_level = get_player_level(name)
-  local level_tag = player_level and "(" .. math.floor(player_level.level) .. ")" or ""
+  local player_level = get_player_level(name, "level")
+  local level_tag = player_level and "(" .. math.floor(player_level) .. ")" or ""
 
   return string.format("%s%s%s%s", rank_tag, faction_tag, level_tag, name_tag)
 end
