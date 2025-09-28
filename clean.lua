@@ -28,6 +28,7 @@ local function clean_message(str)
       :gsub("[%a%p%d]+@[%a%p%d]+%.%a%a%a?", "")  -- email
       :gsub("1?0?%s?%(?%d%d%d%d?%)?%s?%-?%d%d%d%d?%s?%-?%d%d%d%d", "")  -- phone numbers
       :gsub("[%a%p%d]+", function(word) return word:sub(1, 23) end)  -- cut words longer than 23 letters
+      :gsub("[^\32-\126]", "") -- remove all non-standard ascii
 
   while true do  -- for excessive repeating characters
     local mstr = str:gsub("([%a%p%d][%a%p%d])(%1%1)", "%2")

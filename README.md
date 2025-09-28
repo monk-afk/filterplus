@@ -50,7 +50,7 @@ Then the message is sanitized before being evaluated. Messages will be sent as t
   4. Replace any remaining non-letter symbols with a space
   5. Strip away excess spaces
 
-Messages are evaluated by using a scoring system based on `n-gram frequency` with `gram-positional weight`.
+Messages are evaluated by using a frame scoring system based on `n-gram frequency` with `gram-positional weight`.
 
 An 'n-gram' is basically a part of a word, the gram, and n is a number. If we say 2-gram (or bi-gram) that means every two letters in a word:
 
@@ -63,6 +63,27 @@ This means for words like "fuck", the grams which occur in that word would be le
 The filter then calculates the deviation and magnitude of a word's n-gram score, and compares them against a variable threshold.
 
 This system allows profanity detection without relying on hard-coded pattern matching, and becomes resistant to mutation, character substitution, and partial obfuscation.
+
+Update 0.3.1: Messages are evaluated using rolling frames of 3 words. If the MAD and RMS valuess exceed the threshold for a frame, and a word appearing across frames is flagged three times, it is considered vulgar.
+
+For example, in the message "what a beautiful fucking day today" the frames are:
+
+ - "what a beautiful" -> `not flagged`
+ - "a beautiful fucking" -> `flagged`
+ - "beautiful fucking day" -> `flagged`
+ - "fucking day today" -> `flagged`
+
+The flagged words are counted across the flagged frames, in the above example:
+
+```
+  a = 1
+  beautiful = 2
+  fucking = 3
+  day = 2
+  today = 1
+```
+
+Any word crossing the threshold would be censored.
 
 ## Chat Commands
 
@@ -181,12 +202,16 @@ or
 
 ___
 
-## Limitations
+## CLI
 
-- Single-word filtering misses context where two words are benign individually but profane when coupled together.
+For testing or debugging, run the filter from command line:
 
-- False-positives are difficult to forsee
+`lua filter_cli.lua` or `cat some_file.txt | lua filter_cli.lua`
 
 ___
 
-Version `0.3.0`
+Version `0.3.1`
+
+___
+
+The other admins told me this was an impossible problem. Why didn't I listen?

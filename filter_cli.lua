@@ -4,14 +4,16 @@
 local ema_mad
 local ema_rms
 
+-- local frequencies
 local new_mad
 local new_rms
 
 local function filter_message(frame, frequencies, is_word_listed)
+  -- print(table.concat(frame, " "))
   local mad = new_mad() -- open a new closure
   local rms = new_rms()
 
-  for _, word in ipairs(frame) do
+  for i, word in ipairs(frame) do
     if is_word_listed("black", word) then
       return frame
     end
@@ -32,10 +34,12 @@ local function filter_message(frame, frequencies, is_word_listed)
 
           local w = frequencies["whitelist"][gram] or 0.1
           sigma_white = sigma_white + (w * weight)
+          -- [[ DEBUG ]] io.write(string.format("%4s\t W:Fq:%4d, Sg: %4d \t|\t B:Fq: %4d, Sg: %4d\n", gram, math.floor(w), math.floor(sigma_white), b, math.floor(sigma_black)))
         end
         local frequency_bias = sigma_black / (sigma_white + 1)
         rms(frequency_bias) --  accumulated ngram score
         mad(frequency_bias)
+          -- [[ DEBUG ]] print("Frequency Bias:", frequency_bias)
       end
     end
   end
@@ -43,12 +47,14 @@ local function filter_message(frame, frequencies, is_word_listed)
   local deviation, magnitude = mad(), rms()
   local mad_threshold = ema_mad(deviation)
   local rms_threshold = ema_rms(magnitude)
-
+  -- [[ DEBUG ]] local logline = string.format("Frame: %s |\t MAD: %.3f (t: %.3f) |\t RMS: %.3f (t: %.3f)",
+  -- [[ DEBUG ]]     table.concat(frame, " "), deviation, mad_threshold, magnitude, rms_threshold)
+  -- [[ DEBUG ]] print("DEBUG", logline)
   if magnitude > rms_threshold and deviation > mad_threshold then
-    --[[ DEBUG ]] local logline = string.format(
-    --[[ DEBUG ]]   "[FilterPlus] Frame: %s | MAD: %.3f (t: %.3f) | RMS: %.3f (t: %.3f)",
-    --[[ DEBUG ]]     table.concat(frame, " "), deviation, mad_threshold, magnitude, rms_threshold)
-    --[[ DEBUG ]] core.log("action", logline)
+    -- frame[i] = ("*"):rep(word_len)  -- censored if above both thresholds
+    -- print("\27[31m Would be censored\27[0m")
+  -- else
+    -- print("\27[32m All good!\27[0m")
     return frame
   end
 end
@@ -92,7 +98,7 @@ local function frame_closure(modpath)
       word_count = #words
 
       for i = 1, (word_count - math.min(word_count, frame_size) + 1) do
-        local frame = {unpack(words, i, i + math.min(word_count, frame_size) - 1)}
+        local frame = {table.unpack(words, i, i + math.min(word_count, frame_size) - 1)}
         table.insert(frames, frame)
       end
 
@@ -145,9 +151,9 @@ local function register_on_chat(modpath)
 
         for _, frame in ipairs(sanitized_frames) do
           local flagged_frames = filter_message(frame, frequencies, is_word_listed)
-          -- if the frame is returned, count the frequence of appearing words
           if flagged_frames then
             for _, word in ipairs(flagged_frames) do
+              -- count them?
               local f = flagged_words[word]
               flagged_words[word] = f and f + 1 or 1
             end
@@ -158,9 +164,9 @@ local function register_on_chat(modpath)
         local is_censored = false
 
         if next(flagged_words) then
+          outgoing_message = sanitized_message
           for word, count in pairs(flagged_words) do
             if count >= 3 and not is_word_listed("white", word) then
-              outgoing_message = not outgoing_message and sanitized_message or outgoing_message
               outgoing_message = outgoing_message:gsub(word, ("*"):rep(#word))
               is_censored = true
             end
@@ -177,11 +183,31 @@ local function register_on_chat(modpath)
   end
 end
 
-return register_on_chat
+
+local function filter_cli()
+  local modpath = io.popen("pwd"):read() .. "/"
+  local filter = register_on_chat(modpath)
+
+  while true do
+    local user_input = io.input():read()
+    if user_input == [[/reload]] then
+      filter = register_on_chat(modpath)
+    else
+      local filtered_message, is_censored = filter(user_input)
+      local output = string.format(
+        "Original Text: %s\nFiltered Text: %s\nis_censored: %s\n",
+        user_input, filtered_message, is_censored)
+      io.write(output)
+    end
+  end
+end
+
+
+return filter_cli()
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --
--- Copyright © 2023-2025 monk (Discord ID: 699370563235479624)                    --
+-- Copyright © 2023-2025 monk (Discord: monk.moe)                                 --
 --                                                                                --
 -- Permission is hereby granted, free of charge, to any person obtaining a copy   --
 -- of this software and associated documentation files (the "Software"), to deal  --
