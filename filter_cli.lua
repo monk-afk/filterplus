@@ -4,17 +4,17 @@
 local ema_mad
 local ema_rms
 
--- local frequencies
 local new_mad
 local new_rms
 
 local function filter_message(frame, frequencies, is_word_listed)
-  -- print(table.concat(frame, " "))
+-- [[ DEBUG ]] io.write("DEBUG: [Frame]: ", table.concat(frame, ", "), "\n")
   local mad = new_mad() -- open a new closure
   local rms = new_rms()
 
   for i, word in ipairs(frame) do
     if is_word_listed("black", word) then
+    -- [[ DEBUG ]] io.write("DEBUG: [Blacklisted]: ", word, "\n")
       return frame
     end
 
@@ -50,12 +50,12 @@ local function filter_message(frame, frequencies, is_word_listed)
   -- [[ DEBUG ]] local logline = string.format("Frame: %s |\t MAD: %.3f (t: %.3f) |\t RMS: %.3f (t: %.3f)",
   -- [[ DEBUG ]]     table.concat(frame, " "), deviation, mad_threshold, magnitude, rms_threshold)
   -- [[ DEBUG ]] print("DEBUG", logline)
+
   if magnitude > rms_threshold and deviation > mad_threshold then
-    -- frame[i] = ("*"):rep(word_len)  -- censored if above both thresholds
     -- print("\27[31m Would be censored\27[0m")
+    return frame
   -- else
     -- print("\27[32m All good!\27[0m")
-    return frame
   end
 end
 
@@ -65,7 +65,7 @@ local function clear_table(t) -- saves GC from mapping new memory addresses
 end
 
 
--- construct frames of 3 words per frame, supplement short messages with neutral words
+-- construct frames of 3 words per frame, pad with neutral words
 local function frame_closure(modpath)
   local neutral_words = dofile(modpath .. "neutral_words.lua")
 
@@ -83,13 +83,14 @@ local function frame_closure(modpath)
 
       if word_count == 0 then
         return words -- empty table
+      end
 
-      elseif word_count < frame_size + 4 then
-        for n = word_count, frame_size + 2 do
-          local x1 = math.random(1, #neutral_words)
-          local x2 = math.random(1, #neutral_words)
-          table.insert(words, 1, neutral_words[x1])
-          table.insert(words, neutral_words[x2])
+      for n = 1, 4 do -- pad each message with neutral words
+        local random_neutral = math.random(1, #neutral_words)
+        if n % 2 == 0 then
+          table.insert(words, 1, neutral_words[random_neutral])
+        else
+          table.insert(words, neutral_words[random_neutral])
         end
       end
 
@@ -98,6 +99,7 @@ local function frame_closure(modpath)
       word_count = #words
 
       for i = 1, (word_count - math.min(word_count, frame_size) + 1) do
+        -- Luanti doesn't support table.unpack, just warning
         local frame = {table.unpack(words, i, i + math.min(word_count, frame_size) - 1)}
         table.insert(frames, frame)
       end
@@ -139,7 +141,7 @@ local function register_on_chat(modpath)
 
   return function(original_message)
     if original_message and #original_message >= 2 then
-      original_message = original_message:gsub("%s%s+", " ")
+      original_message = original_message:gsub("%s%s+", " ") -- cant remember if this is necessary
 
       local cleaned_message = clean(original_message) -- removes spammy text
       local sanitized_message = sanitize(cleaned_message) -- if censored, message is sent with heavy sanitization
@@ -149,11 +151,12 @@ local function register_on_chat(modpath)
 
         clear_table(flagged_words)
 
-        for _, frame in ipairs(sanitized_frames) do
+        for _, frame in ipairs(sanitized_frames) do  -- run each frame through the filter
           local flagged_frames = filter_message(frame, frequencies, is_word_listed)
-          if flagged_frames then
+
+          if flagged_frames then  -- returned frames get counted
+
             for _, word in ipairs(flagged_frames) do
-              -- count them?
               local f = flagged_words[word]
               flagged_words[word] = f and f + 1 or 1
             end
@@ -161,12 +164,12 @@ local function register_on_chat(modpath)
         end
 
         local outgoing_message
-        local is_censored = false
+        local is_censored = false  -- for the api
 
         if next(flagged_words) then
-          outgoing_message = sanitized_message
           for word, count in pairs(flagged_words) do
             if count >= 3 and not is_word_listed("white", word) then
+              outgoing_message = not outgoing_message and sanitized_message or outgoing_message
               outgoing_message = outgoing_message:gsub(word, ("*"):rep(#word))
               is_censored = true
             end
@@ -185,23 +188,23 @@ end
 
 
 local function filter_cli()
-  local modpath = io.popen("pwd"):read() .. "/"
+  local modpath = io.popen("pwd"):read() .. "/"  -- maybe not portable
   local filter = register_on_chat(modpath)
 
   while true do
     local user_input = io.input():read()
-    if user_input == [[/reload]] then
+
+    if user_input == [[/reload]] then  -- doesn't reload this file, only the filter lists
       filter = register_on_chat(modpath)
+
     else
       local filtered_message, is_censored = filter(user_input)
-      local output = string.format(
-        "Original Text: %s\nFiltered Text: %s\nis_censored: %s\n",
-        user_input, filtered_message, is_censored)
-      io.write(output)
+
+      io.write(string.format("Original Text: %s\nFiltered Text: %s\nis_censored: %s\n",
+          user_input, filtered_message, is_censored))
     end
   end
 end
-
 
 return filter_cli()
 ------------------------------------------------------------------------------------

@@ -77,13 +77,14 @@ local function frame_closure(modpath)
 
       if word_count == 0 then
         return words -- empty table
+      end
 
-      elseif word_count < frame_size + 4 then
-        for n = word_count, frame_size + 2 do
-          local x1 = math.random(1, #neutral_words)
-          local x2 = math.random(1, #neutral_words)
-          table.insert(words, 1, neutral_words[x1])
-          table.insert(words, neutral_words[x2])
+      for n = 1, 4 do -- pad each message with neutral words
+        local random_neutral = math.random(1, #neutral_words)
+        if n % 2 == 0 then
+          table.insert(words, 1, neutral_words[random_neutral])
+        else
+          table.insert(words, neutral_words[random_neutral])
         end
       end
 
@@ -146,9 +147,12 @@ local function register_on_chat(modpath)
         for _, frame in ipairs(sanitized_frames) do
           local flagged_frames = filter_message(frame, frequencies, is_word_listed)
           -- if the frame is returned, count the frequence of appearing words
+
           if flagged_frames then
+
             for _, word in ipairs(flagged_frames) do
               local f = flagged_words[word]
+
               flagged_words[word] = f and f + 1 or 1
             end
           end
@@ -158,7 +162,9 @@ local function register_on_chat(modpath)
         local is_censored = false
 
         if next(flagged_words) then
+
           for word, count in pairs(flagged_words) do
+
             if count >= 3 and not is_word_listed("white", word) then
               outgoing_message = not outgoing_message and sanitized_message or outgoing_message
               outgoing_message = outgoing_message:gsub(word, ("*"):rep(#word))
@@ -181,7 +187,7 @@ return register_on_chat
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --
--- Copyright © 2023-2025 monk (Discord ID: 699370563235479624)                    --
+-- Copyright © 2023-2025 monk (Discord: monk.moe)                                 --
 --                                                                                --
 -- Permission is hereby granted, free of charge, to any person obtaining a copy   --
 -- of this software and associated documentation files (the "Software"), to deal  --
