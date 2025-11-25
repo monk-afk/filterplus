@@ -19,8 +19,8 @@ local is_player_muted, sync_muted_pointer = dofile(modpath .. "muting.lua")
 -- keep track of online players
 local online_players = dofile(modpath .. "online_players.lua")(sync_muted_pointer)
 
--- private message override, proximity messaging (Deprecated!)
-dofile(modpath .. "messaging.lua")(blocking_messages, get_player_tags, filter)
+-- private message override
+dofile(modpath .. "messaging.lua")(blocking_messages)
 
 local colorize = core.colorize
 
@@ -62,12 +62,24 @@ end
 
 core.register_on_chat_message(on_chat_message)
 
--- API for external mods, returns the filtered string
+-- expose some API functions
 filterplus = {}
 
+-- returns the filtered string censored or not
 filterplus.filter_check = function(str)
   return filter(str)
 end
+
+-- player nametag flare including rank, faction, exp if available
+-- usage is simply get_player_tags(player_name)
+filterplus.get_player_tags = get_player_tags
+
+
+-- for mods providing chat functions to check if players are blocking eachother
+-- usage: blocking_messages(player_a, player_b)
+-- if sender blocked receiver or receiver blocked sender then returns true if blocked
+filterplus.blocking_messages = blocking_messages
+
 
 
 -- reload filter and reconstruct lists

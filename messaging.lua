@@ -1,45 +1,9 @@
-return function(blocking_messages, get_player_tags, filter)
-  local function distance(pos_a, pos_b)
-    local x = pos_a.x - pos_b.x
-    local y = pos_a.y - pos_b.y
-    local z = pos_a.z - pos_b.z
-    return math.sqrt(x * x + y * y + z * z)
-  end
-
-  -- this is being replaced with mod 'xm_groupchat', and the function may be renamed in later versions
-  core.register_chatcommand("xm", {
-    description = "Proximity Message Only players within 100 nodes can hear",
-    params = "<message>",
-    privs = {shout = true},
-    func = function(sender_name, original_message)
-      local message = filter(original_message)
-
-      if message and #message >= 2 then
-        local connected_players = core.get_connected_players()
-        local sender_pos = core.get_player_by_name(sender_name):get_pos()
-
-        local formatted_message = string.format(
-          "#/xm %s %s", get_player_tags(sender_name), core.colorize("#00EEAA", message)
-        )
-
-        for _, receiver_player in ipairs(connected_players) do
-          local receiver_pos = receiver_player:get_pos()
-
-          if distance(sender_pos, receiver_pos) <= 100 then
-            local receiver_name = receiver_player:get_player_name()
-            local send = not blocking_messages(sender_name, receiver_name)
-                and core.chat_send_player(receiver_name, formatted_message)
-          end
-        end
-      end
-    end
-  })
-
+return function(blocking_messages)
 
   core.override_chatcommand("msg", {
     description = "Send a private message to a player",
     params = "<recipient_name> <message>",
-    privs = {shout=true},
+    privs = {shout = true},
     func = function(sender, param)
       local receiver, message = param:match("^([a-zA-Z0-9_-]+)%s(.+)$")
 
@@ -58,7 +22,6 @@ return function(blocking_messages, get_player_tags, filter)
       return true, string.format("#/pm «%s» %s", sender, core.colorize("#EE0066", message))
     end
   })
-
 end
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
