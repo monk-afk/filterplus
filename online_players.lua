@@ -1,5 +1,3 @@
-  --==[[ FilterPlus 0.3.1 ]]==--
-  --==[[ monk © 2023-2025 ]]==--
 -- track players with disabled chat, and quicker lookup for name mentions
 local function register_online_players(sync_muted_pointer)
   local online_players = {}
@@ -45,7 +43,7 @@ return register_online_players
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --
--- Copyright © 2023-2025 monk (Discord ID: 699370563235479624)                    --
+-- Copyright © 2023-2025 monk (https://github.com/monk-afk)                       --
 --                                                                                --
 -- Permission is hereby granted, free of charge, to any person obtaining a copy   --
 -- of this software and associated documentation files (the "Software"), to deal  --

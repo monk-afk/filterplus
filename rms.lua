@@ -1,5 +1,3 @@
-  --==[[ FilterPlus 0.3.0 ]]==--
-  --==[[ monk © 2023-2025 ]]==--
 -- magnitude divided by the square root of the number of elements
 local function root_mean_squared()
   local sum_of = 0
@@ -18,7 +16,7 @@ return root_mean_squared
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --
--- Copyright © 2023-2025 monk (Discord ID: 699370563235479624)                    --
+-- Copyright © 2023-2025 monk (https://github.com/monk-afk)                       --
 --                                                                                --
 -- Permission is hereby granted, free of charge, to any person obtaining a copy   --
 -- of this software and associated documentation files (the "Software"), to deal  --

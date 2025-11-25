@@ -1,5 +1,4 @@
-  --==[[ FilterPlus 0.3.1 ]]==--
-  --==[[ monk © 2023-2025 ]]==--
+  --==[[ FilterPlus ]]==--
 local modpath = core.get_modpath(core.get_current_modname()) .. "/"
 
 -- player mentions highlight message in greentext
@@ -11,7 +10,7 @@ local get_player_tags = dofile(modpath .. "nametag_flair.lua")
 -- block and forceblock
 local blocking_messages = dofile(modpath .. "blocking.lua")
 
--- filtering messages
+-- filtering API can be hot-swapped during run-time
 local filter = dofile(modpath .. "filter_api.lua")(modpath)
 
 -- muted players
@@ -84,7 +83,7 @@ core.register_chatcommand("filter_reload", {
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --
--- Copyright © 2023-2025 monk (Discord ID: 699370563235479624)                    --
+-- Copyright © 2023-2025 monk (https://github.com/monk-afk)                       --
 --                                                                                --
 -- Permission is hereby granted, free of charge, to any person obtaining a copy   --
 -- of this software and associated documentation files (the "Software"), to deal  --

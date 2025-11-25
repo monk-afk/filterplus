@@ -1,22 +1,26 @@
-  --==[[ FilterPlus 0.3.0 ]]==--
-  --==[[ monk © 2023-2025 ]]==--
--- joins words with s p a c e s
+
+-- joins words with s p a c e s -- needs work
 local function join_spaced(og_str)
-  local str = " " .. og_str .. " "
+  local str = " " .. og_str .. " " -- pad string with spaces
+  -- only capture from match "space (letter) space letter space letter letter? space"
   local spaced_out = str:match("%s(%a)%s%a%s%a%s")
 
   if spaced_out then
-    local merged = spaced_out
-    local function m(s) merged = s end
+    local merged = spaced_out -- becomes (letter)
+    local function m(s) merged = s end -- needs to stay outside of the loop, otherwise is overwritten inside loop
 
     while true do
+      -- first loop is only captured match
       local mstr = str:gsub("(" .. merged .. ")%s((%a)%s)", function(a,s,b)
-        m(a .. b)
-        return a .. s
+        m(a .. b) -- for each letter after (%1) concat (%1) and (%3) into scoped var 'merged'
+        return a .. s -- return (%1) and (%2) [removes middle space]
       end)
+
+      -- when modified string is the same as padded og string, we've merged everything possible
       if mstr ~= str then str = mstr else break end
     end
   end
+  -- clip padded spaces if they still exist
   return str:match("%s?(.+)%s?")
 end
 
@@ -42,7 +46,7 @@ return clean_message
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --
--- Copyright © 2023-2025 monk (Discord ID: 699370563235479624)                    --
+-- Copyright © 2023-2025 monk (https://github.com/monk-afk)                       --
 --                                                                                --
 -- Permission is hereby granted, free of charge, to any person obtaining a copy   --
 -- of this software and associated documentation files (the "Software"), to deal  --

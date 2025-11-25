@@ -1,5 +1,4 @@
-  --==[[ FilterPlus 0.3.0 ]]==--
-  --==[[ monk © 2023-2025 ]]==--
+
 local player_blocklist = {}
 
 local function block_player(user, blocked_name)
@@ -45,7 +44,7 @@ local function check_invalid_names(user, blocked_name)
   -- fail check if this function returns anything besides false or nil
   if not user then
     return "#! Please include a Player Name!"
-  
+
   elseif not blocked_name or blocked_name == "" or user == blocked_name then
     return get_blocklist(user)
 
@@ -101,7 +100,7 @@ core.register_chatcommand("forceblock", {
   func = function(user, param)
     local name_one, name_two = param:match("([a-zA-Z0-9_-]+)%s*([a-zA-Z0-9_-]*)")
     return true, check_invalid_names(name_one, name_two) or
-        block_player(name_one, name_two) and block_player(name_two, name_one) 
+        block_player(name_one, name_two) and block_player(name_two, name_one)
   end
 })
 
@@ -118,7 +117,7 @@ return blocking_messages
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --
--- Copyright © 2023-2025 monk (Discord ID: 699370563235479624)                    --
+-- Copyright © 2023-2025 monk (https://github.com/monk-afk)                       --
 --                                                                                --
 -- Permission is hereby granted, free of charge, to any person obtaining a copy   --
 -- of this software and associated documentation files (the "Software"), to deal  --

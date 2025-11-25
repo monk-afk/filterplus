@@ -106,7 +106,7 @@ Any word crossing the threshold would be censored.
 
 - Does not mute private or semi-private messaging.
 
-- Timer stops when the player or alt leaves game, and resumes on their next login.
+- Update 0.3.2: Timer stops when the player or alt leaves game, and resumes on their next login.
 
 - Retroactively applied to alt-accounts using a 24-hour cache.
 
@@ -212,7 +212,7 @@ For testing or debugging, run the filter from command line:
 
 ___
 
-Version `0.3.1`
+Version `0.3.2`
 
 ___
 

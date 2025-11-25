@@ -1,115 +1,114 @@
-  --==[[ FilterPlus 0.3.1 ]]==--
-  --==[[ monk © 2023-2025 ]]==--
-  -- 💩⚡ based on ngram scoring
-local ema_mad
-local ema_rms
+local function register_on_chat(modpath)
+  -- based on ngram scoring (soon to be replaced)
 
-local new_mad
-local new_rms
+  local ema_mad = dofile(modpath .. "ema.lua")(0.3) -- a threshold for each evaluation metric
+  local ema_rms = dofile(modpath .. "ema.lua")(0.3)
 
-local function filter_message(frame, frequencies, is_word_listed)
-  local mad = new_mad() -- open a new closure
-  local rms = new_rms()
+  local new_mad = dofile(modpath .. "mad.lua")
+  local new_rms = dofile(modpath .. "rms.lua")
 
-  for _, word in ipairs(frame) do
-    if is_word_listed("black", word) then
+  local function filter_message(frame, frequencies, is_word_listed)
+    local mad = new_mad() -- open a new closure
+    local rms = new_rms()
+
+    for _, word in ipairs(frame) do
+      if is_word_listed("black", word) then
+        return frame
+      end
+
+      local word_len = #word
+      if word_len > 1 then
+        for n = 1, 3 do -- for gram sizes of 2, 3 and 4
+          local sigma_black = 0
+          local sigma_white = 0
+
+          for pos = 1, word_len - n do
+            local gram = word:sub(pos, pos + n)
+            local shifted_pos = (word_len - pos + 1) / word_len -- prefix adds more weight
+            local weight = shifted_pos * #gram  -- gram position * length of gram
+
+            local b = frequencies["blacklist"][gram] or 0
+            sigma_black = sigma_black + (b * weight)
+
+            local w = frequencies["whitelist"][gram] or 0.1
+            sigma_white = sigma_white + (w * weight)
+          end
+          local frequency_bias = sigma_black / (sigma_white + 1)
+          rms(frequency_bias) --  accumulated ngram score
+          mad(frequency_bias)
+        end
+      end
+    end
+    -- end
+    local deviation, magnitude = mad(), rms()
+    local mad_threshold = ema_mad(deviation)
+    local rms_threshold = ema_rms(magnitude)
+
+    if magnitude > rms_threshold and deviation > mad_threshold then
+      --[[ DEBUG ]] local logline = string.format(
+      --[[ DEBUG ]]   "[FilterPlus] Frame: %s | MAD: %.3f (t: %.3f) | RMS: %.3f (t: %.3f)",
+      --[[ DEBUG ]]     table.concat(frame, " "), deviation, mad_threshold, magnitude, rms_threshold)
+      --[[ DEBUG ]] core.log("action", logline)
       return frame
     end
+  end
 
-    local word_len = #word
-    if word_len > 1 then
-      for n = 1, 3 do -- for gram sizes of 2, 3 and 4
-        local sigma_black = 0
-        local sigma_white = 0
 
-        for pos = 1, word_len - n do
-          local gram = word:sub(pos, pos + n)
-          local shifted_pos = (word_len - pos + 1) / word_len -- prefix adds more weight
-          local weight = shifted_pos * #gram  -- gram position * length of gram
+  local function clear_table(t) -- saves GC from mapping new memory addresses
+    for i,_ in pairs(t) do t[i] = nil end
+  end
 
-          local b = frequencies["blacklist"][gram] or 0
-          sigma_black = sigma_black + (b * weight)
 
-          local w = frequencies["whitelist"][gram] or 0.1
-          sigma_white = sigma_white + (w * weight)
+  -- construct frames of 3 words per frame, supplement short messages with neutral words
+  local function frame_closure(modpath)
+    local neutral_words = dofile(modpath .. "neutral_words.lua")
+
+    local frames = {}
+    local words = {}
+    local frame_size = 3
+
+    return function(message)
+      if message and message ~= "" then
+        clear_table(words)
+
+        message:gsub("%a+", function(word) table.insert(words, word) end)
+
+        local word_count = #words
+
+        if word_count == 0 then
+          return words -- empty table
         end
-        local frequency_bias = sigma_black / (sigma_white + 1)
-        rms(frequency_bias) --  accumulated ngram score
-        mad(frequency_bias)
+
+        for n = 1, 4 do -- pad each message with neutral words
+          local random_neutral = math.random(1, #neutral_words)
+          if n % 2 == 0 then
+            table.insert(words, 1, neutral_words[random_neutral])
+          else
+            table.insert(words, neutral_words[random_neutral])
+          end
+        end
+
+        clear_table(frames)
+
+        word_count = #words
+
+        for i = 1, (word_count - math.min(word_count, frame_size) + 1) do
+          local frame = {unpack(words, i, i + math.min(word_count, frame_size) - 1)}
+          table.insert(frames, frame)
+        end
+
+        return frames
       end
     end
   end
-  -- end
-  local deviation, magnitude = mad(), rms()
-  local mad_threshold = ema_mad(deviation)
-  local rms_threshold = ema_rms(magnitude)
 
-  if magnitude > rms_threshold and deviation > mad_threshold then
-    --[[ DEBUG ]] local logline = string.format(
-    --[[ DEBUG ]]   "[FilterPlus] Frame: %s | MAD: %.3f (t: %.3f) | RMS: %.3f (t: %.3f)",
-    --[[ DEBUG ]]     table.concat(frame, " "), deviation, mad_threshold, magnitude, rms_threshold)
-    --[[ DEBUG ]] core.log("action", logline)
-    return frame
-  end
-end
-
-
-local function clear_table(t) -- saves GC from mapping new memory addresses
-  for i,_ in pairs(t) do t[i] = nil end
-end
-
-
--- construct frames of 3 words per frame, supplement short messages with neutral words
-local function frame_closure(modpath)
-  local neutral_words = dofile(modpath .. "neutral_words.lua")
-
-  local frames = {}
-  local words = {}
-  local frame_size = 3
-
-  return function(message)
-    if message and message ~= "" then
-      clear_table(words)
-
-      message:gsub("%a+", function(word) table.insert(words, word) end)
-
-      local word_count = #words
-
-      if word_count == 0 then
-        return words -- empty table
-      end
-
-      for n = 1, 4 do -- pad each message with neutral words
-        local random_neutral = math.random(1, #neutral_words)
-        if n % 2 == 0 then
-          table.insert(words, 1, neutral_words[random_neutral])
-        else
-          table.insert(words, neutral_words[random_neutral])
-        end
-      end
-
-      clear_table(frames)
-
-      word_count = #words
-
-      for i = 1, (word_count - math.min(word_count, frame_size) + 1) do
-        local frame = {unpack(words, i, i + math.min(word_count, frame_size) - 1)}
-        table.insert(frames, frame)
-      end
-
-      return frames
+  local function is_listed_closure(word_lists)
+    return function(list_type, word)
+      return word_lists[list_type].index[word]
     end
   end
-end
-
-local function is_listed_closure(word_lists)
-  return function(list_type, word)
-    return word_lists[list_type].index[word]
-  end
-end
 
 
-local function register_on_chat(modpath)
   local word_lists = dofile(modpath .. "constructors.lua")(modpath)
   local is_word_listed = is_listed_closure(word_lists)
   local framer = frame_closure(modpath)
@@ -121,12 +120,6 @@ local function register_on_chat(modpath)
 
   local sanitize = dofile(modpath .. "sanitizer.lua")
   local clean = dofile(modpath .. "clean.lua")
-
-  ema_mad = dofile(modpath .. "ema.lua")(0.3) -- a threshold for each evaluation metric
-  ema_rms = dofile(modpath .. "ema.lua")(0.3)
-
-  new_mad = dofile(modpath .. "mad.lua")
-  new_rms = dofile(modpath .. "rms.lua")
 
   local flagged_words = {}
 
@@ -172,14 +165,12 @@ local function register_on_chat(modpath)
             end
           end
         end
-
+        -- if the message is censored, send it. otherwise, send the spam-cleaned version
         return outgoing_message and outgoing_message or cleaned_message, is_censored
       end
-
-      return cleaned_message
+      return cleaned_message -- if the message enters the block and is not censored, send clean version
     end
-
-    return original_message
+    return original_message -- message was not put through filter at all, edge cases
   end
 end
 
@@ -187,7 +178,7 @@ return register_on_chat
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --
--- Copyright © 2023-2025 monk (Discord: monk.moe)                                 --
+-- Copyright © 2023-2025 monk (https://github.com/monk-afk)                       --
 --                                                                                --
 -- Permission is hereby granted, free of charge, to any person obtaining a copy   --
 -- of this software and associated documentation files (the "Software"), to deal  --

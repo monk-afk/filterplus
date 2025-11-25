@@ -1,5 +1,3 @@
-  --==[[ FilterPlus 0.3.0 ]]==--
-  --==[[ monk © 2023-2025 ]]==--
 local function mean_absolute_deviation()
   local sum = 0
   local count = 0
@@ -23,7 +21,7 @@ return mean_absolute_deviation
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --
--- Copyright © 2023-2025 monk (Discord ID: 699370563235479624)                    --
+-- Copyright © 2023-2025 monk (https://github.com/monk-afk)                       --
 --                                                                                --
 -- Permission is hereby granted, free of charge, to any person obtaining a copy   --
 -- of this software and associated documentation files (the "Software"), to deal  --

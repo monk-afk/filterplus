@@ -1,5 +1,3 @@
-  --==[[ FilterPlus 0.3.1 ]]==--
-  --==[[ monk © 2023-2025 ]]==--
 return {
   "aab",
   "aaban",
@@ -9690,9 +9688,7 @@ return {
   "faist",
   "faithful",
   "faithh",
-  "fak",
   "faking",
-  "fakt",
   "fal",
   "falcate",
   "falcon",
@@ -24455,12 +24451,6 @@ return {
   "spending",
   "spendthrift",
   "spenserian",
-  "sperm",
-  "spermaceti",
-  "spermathecal",
-  "spermatic",
-  "spermaticos",
-  "spermatophore",
   "spewing",
   "spey",
   "sphae",
@@ -24671,7 +24661,6 @@ return {
   "squash",
   "squat",
   "squatter",
-  "squaw",
   "squawk",
   "squawweed",
   "squeak",
@@ -29412,7 +29401,7 @@ return {
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --
--- Copyright © 2023-2025 monk (https://github.com/monk-afk/)                      --
+-- Copyright © 2023-2025 monk (https://github.com/monk-afk)                       --
 --                                                                                --
 -- Permission is hereby granted, free of charge, to any person obtaining a copy   --
 -- of this software and associated documentation files (the "Software"), to deal  --
