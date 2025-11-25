@@ -34,7 +34,7 @@ ___
 
 Every string processed by the filter first undergoes a cleaning function to remove spammy formatting and content from a message:
 
-`clean.lua`: 
+`clean.lua`:
   1. Lower-casing the entire string
   2. Join words separated with s p a c e s
   3. Strip hyperlinks, email address, phone numbers
@@ -104,7 +104,9 @@ Any word crossing the threshold would be censored.
 
 - Timeout player from using public chat.
 
-- Does not mute private messaging, faction messages, or proximity chat.
+- Does not mute private or semi-private messaging.
+
+- Timer stops when the player or alt leaves game, and resumes on their next login.
 
 - Retroactively applied to alt-accounts using a 24-hour cache.
 
