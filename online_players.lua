@@ -1,53 +1,47 @@
-  --==[[ FilterPlus 0.3.0 ]]==--
+  --==[[ FilterPlus 0.3.1 ]]==--
   --==[[ monk © 2023-2025 ]]==--
 -- track players with disabled chat, and quicker lookup for name mentions
-local online_players = {}
+local function register_online_players(sync_muted_pointer)
+  local online_players = {}
 
-local sync_muted_player_onjoin
-
-local function add_or_remove_online(player, status)
-  local name = player and player:get_player_name()
-  -- if status = false, chat is disabled
-  online_players[name:lower()] = status and name or status
-  if status then
-    sync_muted_player_onjoin(name)
+  local function add_or_remove_online(player, status)
+    local name = player and player:get_player_name()
+    -- status is true or nil signaling event type
+    online_players[name:lower()] = status and name or status
+    sync_muted_pointer(name, status)
   end
-end
 
-core.register_on_joinplayer(function(player)
-  add_or_remove_online(player, true)
-end)
+  core.register_on_joinplayer(function(player)
+    add_or_remove_online(player, true)
+  end)
 
-core.register_on_leaveplayer(function(player)
-  add_or_remove_online(player, nil)
-end)
+  core.register_on_leaveplayer(function(player)
+    add_or_remove_online(player, nil)
+  end)
 
 
-core.register_chatcommand("chat", {
-  description = "Toggle public chat while still allowing private messages",
-  params = "",
-  privs = {shout = true},
-  func = function(name)
-    local name_lower = name:lower()
-    local status
-    if not online_players[name_lower] then
-      online_players[name_lower] = name
-      status = "Enabled"
-    else
-      online_players[name_lower] = false
-      status = "Disabled"
+  core.register_chatcommand("chat", {
+    description = "Toggle public chat while still allowing private messages",
+    params = "",
+    privs = {shout = true},
+    func = function(name)
+      local name_lower = name:lower()
+      local status
+      if not online_players[name_lower] then
+        online_players[name_lower] = name
+        status = "Enabled"
+      else
+        online_players[name_lower] = false
+        status = "Disabled"
+      end
+      return true, string.format("#! %s public chat.", status)
     end
-    return true, string.format("#! %s public chat.", status)
-  end
-})
+  })
 
--- register function from external file, and return the closure function to init.lua
-local function load_sync_function(sync_muted_onjoin_func)
-  sync_muted_player_onjoin = sync_muted_onjoin_func
   return online_players
 end
 
-return load_sync_function
+return register_online_players
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --

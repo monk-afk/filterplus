@@ -1,4 +1,4 @@
-  --==[[ FilterPlus 0.3.0 ]]==--
+  --==[[ FilterPlus 0.3.1 ]]==--
   --==[[ monk © 2023-2025 ]]==--
 core.register_privilege("mute", "Grants usage of mute and forceblock command.")
 
@@ -16,21 +16,49 @@ end
 local function sync_muted_player_onjoin(name)
   local join_ip = core.get_player_ip(name)
   local time_now = os.time()
-  
-  -- player joins
-  local last_ip = muted_players[name] -- last known ip or nil
+
+  local last_ip = muted_players[name]
   local ip_timestamp = muted_players[join_ip] or time_now
 
-  if not last_ip then -- create new record if non-existent
-    muted_players[name] = join_ip
-
-  elseif last_ip ~= join_ip then -- joining ip is different than last known ip
-    -- if the last known ip is muted, it will be higher 
-    ip_timestamp = math.max(muted_players[last_ip], ip_timestamp)
+  -- link player to IP if missing or changed
+  if not last_ip or last_ip ~= join_ip then
     muted_players[name] = join_ip
   end
 
-  muted_players[join_ip] = math.max(ip_timestamp, time_now)
+  -- resume paused mute (negative = remaining seconds)
+  if ip_timestamp and ip_timestamp < 0 then
+    muted_players[join_ip] = time_now - ip_timestamp
+  else
+    muted_players[join_ip] = math.max(ip_timestamp, time_now)
+  end
+end
+
+
+local function sync_muted_player_onleave(name)
+  local ip = muted_players[name]
+  if not ip then return end
+
+  local expiry = muted_players[ip]
+  if not expiry then return end
+
+  local time_now = os.time()
+  if expiry > time_now then
+    -- check if others share the same mute IP and are still online
+    for pname, pip in pairs(muted_players) do
+      if pname ~= name and pip == ip and core.get_player_by_name(pname) then
+        return -- another muted player with same IP still online
+      end
+    end
+    -- pause the mute by storing remaining seconds as negative
+    muted_players[ip] = -(expiry - time_now)
+  end
+end
+
+
+local function sync_muted_pointer(name, onjoin)
+  if onjoin then sync_muted_player_onjoin(name)
+  else sync_muted_player_onleave(name)
+  end
 end
 
 
@@ -47,7 +75,7 @@ local function sync_mute_time_on_command(name, time)
     local cached_ip_link = muted_players[time_or_ip]
     local indexed_ip_timestamp = muted_players[cached_ip_link]
 
-    if indexed_ip_timestamp and indexed_ip_timestamp + 86400 < os.time() then -- 
+    if indexed_ip_timestamp and indexed_ip_timestamp + 86400 < os.time() then
       muted_players[name_or_ip] = nil
     end
   end
@@ -85,7 +113,7 @@ core.register_chatcommand("mute", {
     local reason = param[3] and param[3] ~= ""
         and ", with reason: " .. param[3] or "."
 
-    local full_message = string.format("%s muted <%s> for %d minutes%s", user, name, minutes, reason)
+    local full_message = string.format("<%s> has been silenced for %d minutes%s", name, minutes, reason)
 
     core.chat_send_all("#! " .. full_message)
     core.log("action", "[Report] " .. full_message)
@@ -120,7 +148,7 @@ core.register_chatcommand("unmute", {
   end
 })
 
-return is_player_muted, sync_muted_player_onjoin
+return is_player_muted, sync_muted_pointer
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --

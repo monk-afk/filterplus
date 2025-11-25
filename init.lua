@@ -1,4 +1,4 @@
-  --==[[ FilterPlus 0.3.0 ]]==--
+  --==[[ FilterPlus 0.3.1 ]]==--
   --==[[ monk © 2023-2025 ]]==--
 local modpath = core.get_modpath(core.get_current_modname()) .. "/"
 
@@ -14,13 +14,13 @@ local blocking_messages = dofile(modpath .. "blocking.lua")
 -- filtering messages
 local filter = dofile(modpath .. "filter_api.lua")(modpath)
 
--- muted players by ip
-local is_player_muted, sync_muted_player_onjoin = dofile(modpath .. "muting.lua")
+-- muted players
+local is_player_muted, sync_muted_pointer = dofile(modpath .. "muting.lua")
 
 -- keep track of online players
-local online_players = dofile(modpath .. "online_players.lua")(sync_muted_player_onjoin)
+local online_players = dofile(modpath .. "online_players.lua")(sync_muted_pointer)
 
--- private message override, proximity messaging
+-- private message override, proximity messaging (Deprecated!)
 dofile(modpath .. "messaging.lua")(blocking_messages, get_player_tags, filter)
 
 local colorize = core.colorize
