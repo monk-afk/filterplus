@@ -54,9 +54,8 @@ local function check_invalid_names(user, blocked_name)
   elseif not core.player_exists(user) then
     return "#! Player <" .. user .. "> does not exist."
 
-  elseif core.check_player_privs(blocked_name, "staff") or
-      core.check_player_privs(user, "staff") then
-    return "#! Staff cannot block or be blocked."
+  elseif core.check_player_privs(blocked_name, "staff") then
+    return "#! Staff cannot be blocked."
   end
   -- returned nil allows the caller to continue
 end
@@ -99,8 +98,30 @@ core.register_chatcommand("forceblock", {
   privs = {mute = true},
   func = function(user, param)
     local name_one, name_two = param:match("([a-zA-Z0-9_-]+)%s*([a-zA-Z0-9_-]*)")
+
+    if core.check_player_privs(user, "staff") and
+        core.check_player_privs(name_two, "staff") then
+      name_one, name_two = name_two, name_one
+    end
+
     return true, check_invalid_names(name_one, name_two) or
         block_player(name_one, name_two) and block_player(name_two, name_one)
+  end
+})
+
+core.register_chatcommand("forceunblock", {
+  description = "Unblock two players allowing chat with each other",
+  params = "<player_name> <player_name>",
+  privs = {mute = true},
+  func = function(user, param)
+    local name_one, name_two = param:match("([a-zA-Z0-9_-]+)%s*([a-zA-Z0-9_-]*)")
+
+    if core.check_player_privs(name_two, "staff") then
+      name_one, name_two = name_two, name_one
+    end
+
+    return true, check_invalid_names(name_one, name_two) or
+        unblock_player(name_one, name_two) and unblock_player(name_two, name_one)
   end
 })
 
@@ -117,7 +138,7 @@ return blocking_messages
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --
--- Copyright © 2023-2025 monk (https://github.com/monk-afk)                       --
+-- Copyright © 2023-2026 monk (https://github.com/monk-afk)                       --
 --                                                                                --
 -- Permission is hereby granted, free of charge, to any person obtaining a copy   --
 -- of this software and associated documentation files (the "Software"), to deal  --
