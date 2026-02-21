@@ -1,28 +1,36 @@
   --==[[ FilterPlus ]]==--
-local modpath = core.get_modpath(core.get_current_modname()) .. "/"
+local modpath = core.get_modpath(core.get_current_modname())
 
 -- player mentions highlight message in greentext
-local find_mentioned_players = dofile(modpath .. "mentioning.lua")
+local find_mentioned_players = dofile(modpath .. "/mentioning.lua")
 
 -- nametag flair, ranks, level, faction
-local get_player_tags = dofile(modpath .. "nametag_flair.lua")
+local get_player_tags = dofile(modpath .. "/nametag_flair.lua")
 
 -- block and forceblock
-local blocking_messages = dofile(modpath .. "blocking.lua")
+local blocking_messages = dofile(modpath .. "/blocking.lua")
 
 -- filtering API can be hot-swapped during run-time
-local filter = dofile(modpath .. "filter_api.lua")(modpath)
+local filter_path = modpath .. "/filter/"
+local filter = dofile(filter_path .. "init.lua")(filter_path)
 
 -- muted players
-local is_player_muted, sync_muted_pointer = dofile(modpath .. "muting.lua")
+local is_player_muted, sync_muted_pointer = dofile(modpath .. "/muting.lua")
 
 -- keep track of online players
-local online_players = dofile(modpath .. "online_players.lua")(sync_muted_pointer)
+local online_players = dofile(modpath .. "/online_players.lua")(sync_muted_pointer)
 
 -- private message override
-dofile(modpath .. "messaging.lua")(blocking_messages)
+dofile(modpath .. "/messaging.lua")(blocking_messages)
+
+-- censor usernames
+dofile(modpath .. "/on_join.lua")(filter)
 
 local colorize = core.colorize
+
+local function log_censored_messages(message, filtered_message)
+  return message ~= filtered_message and core.log("action", "[FilterPlus] Censored: " .. message)
+end
 
 local function on_chat_message(sender_name, message)
   if is_player_muted(sender_name) then
@@ -57,29 +65,21 @@ local function on_chat_message(sender_name, message)
     end
   end
 
+  log_censored_messages(message, filtered_message)
+
   return true
 end
 
 core.register_on_chat_message(on_chat_message)
 
--- expose some API functions
+
+-- global call function
 filterplus = {}
 
 -- returns the filtered string censored or not
 filterplus.filter_check = function(str)
   return filter(str)
 end
-
--- player nametag flare including rank, faction, exp if available
--- usage is simply get_player_tags(player_name)
-filterplus.get_player_tags = get_player_tags
-
-
--- for mods providing chat functions to check if players are blocking eachother
--- usage: blocking_messages(player_a, player_b)
--- if sender blocked receiver or receiver blocked sender then returns true if blocked
-filterplus.blocking_messages = blocking_messages
-
 
 
 -- reload filter and reconstruct lists
@@ -88,7 +88,7 @@ core.register_chatcommand("filter_reload", {
   params = "",
   privs = {server = true},
   func = function(user)
-    filter = dofile(modpath .. "filter_api.lua")(modpath)
+    filter = dofile(filter_path .. "init.lua")(filter_path)
     return true, "FilterPlus Reloaded!"
   end
 })
