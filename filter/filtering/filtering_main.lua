@@ -37,7 +37,7 @@ return function(module_files)
     if candidate_pool then
 
       -- get a table of the potential curses or nil
-      local selected_candidates = triage_candidates(candidate_pool, sanitized_message--[[ , injected_message ]])
+      local selected_candidates = triage_candidates(candidate_pool, sanitized_message)
 
       -- evaluate confidence of the triaged selections
       if selected_candidates then
