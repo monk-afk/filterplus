@@ -52,7 +52,7 @@ local function sync_muted_player_onleave(name)
   end
 end
 
-
+-- so i dont have to carry two references between files
 local function sync_muted_pointer(name, onjoin)
   if onjoin then sync_muted_player_onjoin(name)
   else sync_muted_player_onleave(name)
