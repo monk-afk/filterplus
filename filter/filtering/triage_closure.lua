@@ -5,24 +5,23 @@ return function(whitelist)
     local candidates
 
     for blacklisted_word, pattern in pairs(candidate_pool) do
-      local approximate_pattern = pattern.approximate
-      local semantic_pattern = pattern.semantic
+      local partial_pattern = pattern.partial
 
-      for approximate_match in sanitized_message:gmatch(approximate_pattern) do
-        if not whitelist[approximate_match] then
-
-          for semantic_match in approximate_match:gmatch(semantic_pattern) do
-            if semantic_match and not whitelist[semantic_match] then
-              if not candidates then candidates = {} end
+        for partial_match in sanitized_message:gmatch(partial_pattern) do
+          for word in partial_match:gmatch("%a%a+") do
+            if not whitelist[word] then
+              if not candidates then
+                candidates = {}
+              end
 
               table.insert(candidates, {
-                  string_matched = semantic_match,
-                  blacklisted_word = blacklisted_word,
-                })
+                string_matched = word,
+                blacklisted_word = blacklisted_word,
+                partial_capture = partial_match,
+              })
             end
           end
         end
-      end
     end
     return candidates
   end

@@ -1,9 +1,11 @@
+    -- find potential candidates for pattern matching
 return function(sanitized_message, blacklist)
   local spaceless_message = sanitized_message:gsub("%s+", "")
   local n = #spaceless_message
 
   local candidate_pool
   for g = 1, n - 1 do
+    -- check rolling bigram window across the spaceless
     local gram = spaceless_message:sub(g, g + 1)
     local candidates = blacklist[gram]
 
@@ -12,7 +14,9 @@ return function(sanitized_message, blacklist)
 
       for _, pattern in ipairs(candidates) do
         local word = pattern.word
-        candidate_pool[word] = {approximate = pattern.approximate, semantic = pattern.semantic}
+        candidate_pool[word] = {
+          partial = pattern.partial,
+        }
       end
     end
   end
