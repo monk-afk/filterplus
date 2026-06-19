@@ -1,18 +1,26 @@
 return function(module_files)
+  -- logging
+  local logger = module_files.logger
+
   -- word lists
   local blacklist, whitelist, b_grams, w_grams = dofile(module_files.construct_wordlists)(module_files)
 
   -- utilities
   local frequency_bias = dofile(module_files.frequency_bias)(b_grams, w_grams)
   local sanitize, reduce_repeating = dofile(module_files.sanitizer)
-  local ema = dofile(module_files.exponent_average)()
+
+  -- [[ DEBUG ]] local ema_F = io.open(module_files.ema_file, "r")  -- typical average based on trial+error
+  -- [[ DEBUG ]] local init_threshold = tonumber(ema_F:read("*a")) or 0.36
+  -- [[ DEBUG ]] local init_threshold = 0.5
+  -- [[ DEBUG ]] local ema = dofile(module_files.exponent_average)(--[[ init_threshold ]])
+  -- [[ DEBUG ]] ema_F:close()
+
   local root_sum_squared = dofile(module_files.root_sum_squared)
   local edit_distance = dofile(module_files.edit_distance)
 
   -- filtering utils
   local triage_candidates = dofile(module_files.triage_closure)(whitelist)
   local get_candidates = dofile(module_files.get_candidates)
-
 
   local function edit_confidence(word, dist)
     if dist == 0 then return 1 end
@@ -23,9 +31,11 @@ return function(module_files)
     return 1 / (1 + math.exp(-freq_bias))  -- sigmoid
   end
 
-  return function(raw_message)
+  local censor_threshold = 0.369
 
+  return function(raw_message)
     raw_message = reduce_repeating(raw_message)
+
     local sanitized_message = sanitize(raw_message) -- strip everything except letters n spaces
 
     if not sanitized_message then return raw_message end -- nothing left after sanitize, emojis mostly
@@ -58,7 +68,10 @@ return function(module_files)
           local structural_similarity = 1 - (freq_diff / (curse_bias + 1))
 
           local conf = edit_conf * freq_conf * structural_similarity -- final answer
-          rss(conf) -- add it to the sum
+
+          if conf > 0 then  -- negative confidence scores contribute to a higher positive RSS
+            rss(conf) -- add it to the sum
+          end
 
           selected_candidates[i].confidence = conf
         end
@@ -66,16 +79,18 @@ return function(module_files)
         table.sort(selected_candidates, function(a, b) return a.confidence > b.confidence end)
 
         local rss_confidence = rss() -- close the sum for squaring
-        local ema_threshold = ema(rss_confidence)
+        local is_censored = rss_confidence > censor_threshold
 
-        if rss_confidence > ema_threshold then
+        logger(("[FilterPlus] %s RSS: %.6f CEN: %s RAW: %s"):format(
+          selected_candidates[1].string_matched, rss_confidence, tostring(is_censored), raw_message
+        ))
+
+        if is_censored then
           for _, candidate in ipairs(selected_candidates) do
             local cursed = candidate.string_matched
             sanitized_message = sanitized_message:gsub(cursed, ("*"):rep(#cursed))
-              -- print(candidate.confidence)
-              -- print(candidate.string_matched)
-              -- print(candidate.blacklisted_word)
           end
+
           return sanitized_message
         end
       end
