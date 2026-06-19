@@ -1,7 +1,6 @@
 local function join_spaced(og_str)
   local str = " " .. og_str .. " " -- pad string with spaces
-  -- only capture from match "space (letter) space letter space letter letter? space"
-  -- local spaced_out = str:match("%s(%a)%s%a%s%a%a?%s")
+  -- only capture from match
   local spaced_out = str:match("%G(%a%a?)[%g%G]+")
 
   if spaced_out then
@@ -19,13 +18,13 @@ local function join_spaced(og_str)
     end
   end
   -- clip padded spaces if they still exist
-  return str:match("^%s([%a%s]+)%s$")
+  return str:match("^%s*(.-)%s*$")
 end
 
 local function reduce_repeating(str)
   str = str:gsub("%s%s+", " ")
   while true do -- reduce excessive repeated character sets (max 2)
-    local mstr = str:gsub("((%a+)%a+)((%1)%2)", "%3")
+    local mstr = str:gsub("((%a+)%a*)%2(%1)", "%3")
     if mstr ~= str then str = mstr else break end
   end
   return str
@@ -34,7 +33,7 @@ end
 local function sanitize(str)
   if str and str ~= "" then
     str = str:lower()
-             :gsub("[^%a%s%'%*]", " ")
+             :gsub("[^%a%s’%'%*]", " ")
              :gsub("[%'%*]", "")
              :gsub("%s+", " ")
              :gsub("%s$", "")
