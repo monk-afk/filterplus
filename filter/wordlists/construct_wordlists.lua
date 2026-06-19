@@ -7,10 +7,12 @@ return function(module_files)
       local chars = {}
       word:gsub(".", function(c) table.insert(chars, c) end)
 
-      local approximate = "%a*" .. table.concat(chars, "+%a?%s?") .. "+%a*"
-      local semantic = ".*%f[%g](%a*" .. table.concat(chars, "+%s?") .. "+%a*)%f[%G].*"
+      local partial = "%f[%g](%a-" .. table.concat(chars, "+%s?") .. "+%a-)%f[%G]"
 
-      local entry = { approximate = approximate, semantic = semantic, word = word }
+      local entry = {
+        partial = partial,
+        word = word
+      }
 
       -- bigram index containing patterns and corresponding vulgarities
       --[[ ["fu"] = {
@@ -48,6 +50,7 @@ return function(module_files)
     local whitelist_array = dofile(module_files.whitelist)
     local blacklist_array = dofile(module_files.blacklist)
     local blacklist_muted = dofile(module_files.blacklist_mutations)
+    local mutation_exempt = dofile(module_files.mutation_exceptions)
 
     local whitelist = {}
     for _, w in ipairs(whitelist_array) do
@@ -60,7 +63,7 @@ return function(module_files)
 
     local filtered_blacklist = {}
     for _, w in ipairs(blacklist_array) do
-      if not whitelist[w] then
+      if not whitelist[w] and not mutation_exempt[w] then
         table.insert(filtered_blacklist, w)
       end
     end
