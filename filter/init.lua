@@ -1,4 +1,4 @@
-local function register_on_chat(path)
+local function filterplus(path, logger)
   -- just incase
   if not path:match(".*/$") then path = path .. "/" end
 
@@ -16,11 +16,16 @@ local function register_on_chat(path)
     root_sum_squared = utilities_path .. "root_sum_squared.lua",
     exponent_average = utilities_path .. "exponent_average.lua",
     sanitizer        = utilities_path .. "sanitizer.lua",
+    -- [[ DEPRECATED ]] ema_file = utilities_path .. "ema_checkpoint.lua",
 
     blacklist = wordlists_path .. "blacklist.lua",
     whitelist = wordlists_path .. "whitelist.lua",
     blacklist_mutations = wordlists_path .. "blacklist_mutations.lua",
+    mutation_exceptions = wordlists_path .. "mutation_exceptions.lua",
     construct_wordlists = wordlists_path .. "construct_wordlists.lua",
+
+    -- enable logging by passing a logging function
+    logger = logger or function() end,
   }
 
   local filter = dofile(module_files.filtering_main)(module_files)
@@ -30,7 +35,7 @@ local function register_on_chat(path)
   end
 end
 
-return register_on_chat
+return filterplus
 ------------------------------------------------------------------------------------
 -- MIT License                                                                    --
 --                                                                                --
