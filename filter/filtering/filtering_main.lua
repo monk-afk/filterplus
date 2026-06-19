@@ -8,13 +8,6 @@ return function(module_files)
   -- utilities
   local frequency_bias = dofile(module_files.frequency_bias)(b_grams, w_grams)
   local sanitize, reduce_repeating = dofile(module_files.sanitizer)
-
-  -- [[ DEBUG ]] local ema_F = io.open(module_files.ema_file, "r")  -- typical average based on trial+error
-  -- [[ DEBUG ]] local init_threshold = tonumber(ema_F:read("*a")) or 0.36
-  -- [[ DEBUG ]] local init_threshold = 0.5
-  -- [[ DEBUG ]] local ema = dofile(module_files.exponent_average)(--[[ init_threshold ]])
-  -- [[ DEBUG ]] ema_F:close()
-
   local root_sum_squared = dofile(module_files.root_sum_squared)
   local edit_distance = dofile(module_files.edit_distance)
 
