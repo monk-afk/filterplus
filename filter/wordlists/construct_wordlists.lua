@@ -51,6 +51,7 @@ return function(module_files)
     local blacklist_array = dofile(module_files.blacklist)
     local blacklist_muted = dofile(module_files.blacklist_mutations)
     local mutation_exempt = dofile(module_files.mutation_exceptions)
+    local normalize = dofile(module_files.normalizer)
 
     local whitelist = {}
     for _, w in ipairs(whitelist_array) do
@@ -63,6 +64,7 @@ return function(module_files)
 
     local filtered_blacklist = {}
     for _, w in ipairs(blacklist_array) do
+      w = normalize(w)
       if not whitelist[w] and not mutation_exempt[w] then
         table.insert(filtered_blacklist, w)
       end
