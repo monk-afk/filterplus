@@ -10,6 +10,7 @@ return function(module_files)
   local sanitize, reduce_repeating = dofile(module_files.sanitizer)
   local root_sum_squared = dofile(module_files.root_sum_squared)
   local edit_distance = dofile(module_files.edit_distance)
+  local normalize = dofile(module_files.normalizer)
 
   -- filtering utils
   local triage_candidates = dofile(module_files.triage_closure)(whitelist)
@@ -28,8 +29,7 @@ return function(module_files)
 
   return function(raw_message)
     raw_message = reduce_repeating(raw_message)
-
-    local sanitized_message = sanitize(raw_message) -- strip everything except letters n spaces
+    local sanitized_message = sanitize( normalize(raw_message) )
 
     if not sanitized_message then return raw_message end -- nothing left after sanitize, emojis mostly
 

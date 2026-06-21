@@ -63,7 +63,7 @@ Alternatively, the included `init_cli.lua` can be invoked from command line; `lu
 
 It boils down to this:
 
-  1. Reduce excessive repetition, then normalize the message to lowercase letters and spaces.
+  1. Reduce excessive repetition, normalize common obfuscating characters, then sanitize the message to lowercase letters and spaces.
 
   2. Select blacklist candidates via rolling bigram activation.
     - > "example" -> [ex], [xa], [am], [mp], [pl], [le]
@@ -123,7 +123,9 @@ Unlike classic Levenshtein (all edits cost 1), this version uses:
 
 `root_sum_squared.lua` returns a stateful accumulator. Passing a number adds its square to the running sum; calling it with no value returns the square root of that sum. The filtering path uses this to combine positive candidate confidence scores without averaging them.
 
-`sanitizer.lua` exports two preprocessing functions. `reduce_repeating` collapses repeated whitespace and excessive repeated character sequences. `sanitize` lowercases the message, removes unsupported punctuation and symbols, normalizes whitespace, and joins letters separated to evade matching. The sanitized form is used for candidate matching and becomes the returned text only when censoring occurs.
+`normalizer.lua` performs a UTF-8-aware replacement pass before sanitization. It converts common leetspeak characters, currency and typographic symbols, accented Latin letters, small capitals, and selected Greek and Cyrillic lookalikes into their intended ASCII forms. Unmapped ASCII characters pass through for the sanitizer, while unsupported non-ASCII characters are removed.
+
+`sanitizer.lua` exports two preprocessing functions. `reduce_repeating` collapses repeated whitespace and excessive repeated character sequences. After normalization, `sanitize` lowercases the message, removes remaining unsupported punctuation and symbols, normalizes whitespace, and joins letters separated to evade matching. The sanitized form is used for candidate matching and becomes the returned text only when censoring occurs.
 
 `exponent_average.lua` **deprecated** calculates the average RSS using an EMA function resistant to deviation and a softening of the curve during normal chat.
 
@@ -135,7 +137,7 @@ Unlike classic Levenshtein (all edits cost 1), this version uses:
 
 `filtering_main.lua` constructs the wordlists and helper closures once, then returns the message filter. For each message it:
 
-  1. Reduces repetition and sanitizes the text.
+  1. Reduces repetition, normalizes obfuscating characters, and sanitizes the text.
   2. Selects candidates by bigram and triages them by partial pattern and whitelist.
   3. Scores each selected candidate from weighted edit similarity, frequency confidence, and the frequency-bias difference from its canonical blacklist word.
   4. Adds positive confidence scores to the root-sum-squared accumulator and compares the result with the fixed censor threshold.

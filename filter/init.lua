@@ -14,8 +14,8 @@ local function filterplus(path, logger)
     frequency_bias   = utilities_path .. "frequency_bias.lua",
     edit_distance    = utilities_path .. "edit_distance.lua",
     root_sum_squared = utilities_path .. "root_sum_squared.lua",
-    -- [[ DEPRECATED ]] exponent_average = utilities_path .. "exponent_average.lua",
     sanitizer        = utilities_path .. "sanitizer.lua",
+    normalizer       = utilities_path .. "normalizer.lua",
 
     blacklist = wordlists_path .. "blacklist.lua",
     whitelist = wordlists_path .. "whitelist.lua",
