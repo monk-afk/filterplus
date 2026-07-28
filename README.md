@@ -1,139 +1,182 @@
 # FilterPlus
 
-An API framework for chat stream functionality, moderation, and personalization.
+FilterPlus is a chat filter written in Lua.  
 
-___
+It normalizes and sanitizes each message, gathers possible blacklist matches 
+from two independent matchers, scores the resulting candidates, and classifies 
+each capture by a two-of-three vote.
 
-This package is derived from the separation of concerns which were a part of the `FilterPlus` mod.
+The primary interface is a single filter function. A removable command-line
+adapter is included for reviewing messages and preparing classified corpora.
 
-Eventually changing the name from `FilterPlus` to `On Chat` at some point in time.
+Requires LuaJIT or Lua 5.2 and later.
 
-The filter can be found in its own folder, and can be used as a standalone or imported module.
+No external Lua modules or dependencies.
 
-**Objective**
+## Using the filter
 
-- Central event handler for `core.register_on_chat_message()`
-- Provide a minimal set of essential tools
-- Maintain modular drop-in support
-
-**Included**
-
-- Green-text message highlighted for players mentioned by name
-- Override `/msg` to include features of this mod
-- Support for nametag flair from external mods
-- Exposed API for external mods
-- Commands for players
-- Commands for server staff
-- Drop-in Filtering module
-
-___
-
-## Green-text Highlghting
-
-Messages containing another player's name will be sent to the mentioned player as green text. If many players are mentioned, they will each receive green text.
-
-___
-
-**Override /msg**
-
-Overrides the built-in `/msg` command to include:
-
-  - Blocking messages from specified players
-  - Shows the sender their own message after it is sent
-  - Distinguish between outgoing and incoming messages
-
-## Nametag Flair
-
-Nametag default format is: `«PlayerName»`. Built-in support from mods if available: Ranks, Factions, Exp.
-
-Ensure the `minetest.conf` has the setting enabled, and that the external mod exists in the global namespace:
-
-```conf
-# minetest.conf
-filterplus_ranks = true
-filterplus_factions = true
-filterplus_exp = true
-```
+Load `init.lua`, then construct a filter with the path to the FilterPlus
+directory:
 
 ```lua
--- nametag_flair.lua
-local factions_available = core.settings:get_bool("filterplus_factions") and
-    core.global_exists("factions") == true
+local create_filter = dofile("/path/to/filterplus/init.lua")
+local filter = create_filter("/path/to/filterplus")
+
+local filtered_message, bucket, candidates = filter("hello there")
 ```
 
-The external mod must provide at least the string for the nametag flair. If a color is also provided, make sure it is the second value returned.
+The path may end in `/` or `\`; FilterPlus adds a separator when one is absent.
 
-For example, the Factions mod would have a callback defined within itself. FilterPlus will attempt to call the external mod, expecting to receive a hex color and a text string:
+Callers interested only in the filtered text may ignore the additional return
+values:
 
 ```lua
--- ensure compatibility with your mod
-local get_player_faction = factions_available and factions.is_player_in or function() return nil end
-
--- expects a string, and hexadecimal color
-local faction_name, faction_color = get_player_faction(name)
-
--- the resulting flair will appear as colored string in brackets, eg: [Faction]
-local faction_tag = faction_name and "[" .. colorize((faction_color or "#FFFFFF"), faction_name) .. "]" or ""
+local filtered_message = filter(message)
 ```
 
-The default ordering of flair tags is: `{Rank}[Faction](Exp)«PlayerName» `
+### Return values
 
-___
+Every call returns:
 
-## Chat Commands
+```lua
+filtered_message, bucket, candidates
+```
 
-**Blocking**
+- `filtered_message` is the original message for clean and ambiguous results.
+  Dirty messages are returned in normalized, sanitized form with each capture
+  receiving at least two votes replaced by asterisks.
+- `bucket` is `"clean"`, `"ambig"`, or `"dirty"`.
+- `candidates` is a table of diagnostic records grouped by matched string.
 
-- Ignore all public and private messages from being delivered.
+Candidate records include the matched string, supporting blacklist words,
+matcher votes, confidence information, and the final vote count. These records
+are useful for diagnostics and downstream review; filtering does not require a
+caller to inspect them.
 
-- Persistent between logins until unblocked or server shutdown.
+### Logging
 
-`/block` or `/unblock`: Without parameter will show your list of blocked players.
-  - Players with `staff` privilege are not able to block or be blocked. Using the block command with player name will list the player's block list.
+An optional logger can be supplied when constructing the filter:
 
-`/block player_name` or `/unblock player_name`: Add or remove another player from your blocked-players list.
+```lua
+local function log_filter_result(message)
+  io.stderr:write(message, "\n")
+end
 
-For server moderators, forcing a block is enabled until both players use /unblock.
+local filter = create_filter(
+  "/path/to/filterplus",
+  log_filter_result
+)
+```
 
-`/forceblock player_name1 player_name2`: Add two players to each other's block list. Requires `mute` privilege.
+The logger is called for each capture classified as dirty. FilterPlus otherwise
+has no output or filesystem-write side effects.
 
-`/forceunblock player_name1 player_name2`: Removes the given player names from each other's block list.
+## Classification
 
-**Muting**
+Consensus is calculated independently for each canonical sanitized capture:
 
-- Timeout player from using public chat.
+1. Pattern matching casts one vote for exact words and selected unspaced
+   patterns.
+2. Ngram triage casts one vote after bigram/trigram cross-validation and
+   spaced-pattern validation.
+3. Confidence scoring casts one vote from edit-distance and frequency evidence
+   across the blacklist words supporting that capture.
 
-- Timer stops when the player or alt leaves game, and resumes on their next login.
+A capture is dirty when it receives at least two votes.
 
-- Retroactively applied to alt-accounts using a 24-hour cache.
+- `clean`: neither matcher produced a capture.
+- `ambig`: one or more captures were found, but none received two votes.
+- `dirty`: at least one capture received two votes.
 
-`/mute player_name minutes`: Defaults to 2 minutes if no parameter is provided, and 120 minutes maximum
+Only dirty captures are censored. An ambiguous capture elsewhere in a dirty
+message remains visible.
 
-`/unmute player_name`: To allow using public chat before timeout expires.
+## Command-line corpus adapter
 
+The adapter reads one message per line from standard input and writes classified
+messages with candidate diagnostics to:
 
-**Toggle Chat**
+```text
+bucketing/corpus/bucket_output/messages_clean.txt
+bucketing/corpus/bucket_output/messages_ambig.txt
+bucketing/corpus/bucket_output/messages_dirty.txt
+```
 
-`/chat`
+Run it interactively:
 
-- Alternative to the "hide chat" feature built into Luanti client, and provides the ability for clients without.
+```sh
+luajit bucketing/filter_cli.lua
+```
 
-- Toggle receiving messages sent to the public chat channel.
+Or redirect a line-oriented corpus:
 
-- Direct messages and other command-based messages are not affected.
+```sh
+luajit bucketing/filter_cli.lua < messages.txt
+```
 
-- System notifications are still visible.
+The adapter resolves its paths from `filter_cli.lua`, so it may be launched from
+another working directory.
 
-___
+Each run opens all three output files in write mode and replaces their existing
+contents. Preserve any output you need before starting another run.
 
-## Global Functions
+`bucketing/corpus/messages_link.sh` contains a download command for an external
+Minecraft chat dataset used as an example corpus source. Downloaded structured
+data must be converted to one message per line before being passed to the
+adapter.
 
-Most of the functions are fitted to return with a boolean value, and may be added to the global table for access to external mods. These however would have to be added manually by editing the init.lua file until a better solution is implemented.
+The adapter and buffer controller depend on FilterPlus. FilterPlus itself does
+not depend on either component and can be packaged without `bucketing/`.
 
-___
+## Wordlists
 
-Copyright © 2026 monk https://github.com/monk-afk/
+Wordlist sources are under `wordlists/`:
 
-___
+- `blacklist.lua`: canonical blacklist entries.
+- `whitelist.lua`: allowed words protected from matching.
+- `blacklist_patterns.lua`: entries eligible for unspaced pattern matching.
+- `blacklist_mutations.lua`: generated keyboard-error variants.
+- `mutation_exceptions.lua`: generated variants excluded from the blacklist.
 
-`FilterPlus`? more like, `FalsePositive`
+The runtime indexes and gram frequencies are rebuilt when the filter is
+constructed.
+
+## Project layout
+
+```text
+.
+├── LICENSE
+├── README.md
+├── init.lua
+├── filtering/
+│   ├── confidence_score.lua
+│   ├── filter_main.lua
+│   ├── ngram_triage.lua
+│   └── pattern_matching.lua
+├── utilities/
+│   ├── edit_distance.lua
+│   ├── exponent_average.lua
+│   ├── frequency_bias.lua
+│   ├── normalizer.lua
+│   └── sanitizer.lua
+├── wordlists/
+│   ├── blacklist.lua
+│   ├── blacklist_mutations.lua
+│   ├── blacklist_patterns.lua
+│   ├── construct_wordlists.lua
+│   ├── mutation_exceptions.lua
+│   └── whitelist.lua
+└── bucketing/
+    ├── buffer_controller.lua
+    ├── filter_cli.lua
+    └── corpus/
+        ├── messages_link.sh
+        └── bucket_output/
+            ├── messages_ambig.txt
+            ├── messages_clean.txt
+            └── messages_dirty.txt
+```
+
+[MIT](LICENSE) 
+
+Copyright © 2026 monk (https://github.com/monk-afk)

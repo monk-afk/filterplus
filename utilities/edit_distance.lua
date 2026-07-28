@@ -1,3 +1,19 @@
+-- FilterPlus
+-- Copyright © 2026 monk (https://github.com/monk-afk)
+-- SPDX-License-Identifier: MIT
+
+-- weighted Damerau-Levenshtein distance tuned for profanity obfuscation.
+-- split/join spacing, adjacent-key typos and transpositions are penalized less.
+--
+-- This function returns a numeric "edit cost" between two strings:
+--   - lower cost  = structurally more similar
+--   - higher cost = more different
+--
+-- Unlike classic Levenshtein (all edits cost 1), this version uses:
+--   - weighted insert/delete/substitute costs
+--   - explicit adjacent transposition support ("fu kc" style swaps)
+--   - keyboard-neighbor awareness via fat-finger mapping
+--
 -- The output remains a single scalar, so callers can keep using:
 --   edit_confidence = 1 - (distance / #match)
 local function measure_distance(source, target)
@@ -189,26 +205,3 @@ local function measure_distance(source, target)
 end
 
 return measure_distance
-------------------------------------------------------------------------------------
--- MIT License                                                                    --
---                                                                                --
--- Copyright © 2026 monk (https://github.com/monk-afk)                            --
---                                                                                --
--- Permission is hereby granted, free of charge, to any person obtaining a copy   --
--- of this software and associated documentation files (the "Software"), to deal  --
--- in the Software without restriction, including without limitation the rights   --
--- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell      --
--- copies of the Software, and to permit persons to whom the Software is          --
--- furnished to do so, subject to the following conditions:                       --
---                                                                                --
--- The above copyright notice and this permission notice shall be included in all --
--- copies or substantial portions of the Software.                                --
---                                                                                --
--- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR     --
--- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,       --
--- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE    --
--- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER         --
--- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,  --
--- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE  --
--- SOFTWARE.                                                                      --
-------------------------------------------------------------------------------------

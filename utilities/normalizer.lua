@@ -1,6 +1,11 @@
+-- FilterPlus
+-- Copyright © 2026 monk (https://github.com/monk-afk)
+-- SPDX-License-Identifier: MIT
 local replacement_map = {
   ["‘"] = "'",
   ["’"] = "'",
+  ["“"] = '"',
+  ["”"] = '"',
   ["@"] = "a",
   ["†"] = "t",
   ["®"] = "r",
@@ -22,6 +27,8 @@ local replacement_map = {
   ["Ă"] = "a",
   ["â"] = "a",
   ["Â"] = "a",
+  ["ấ"] = "a",
+  ["ầ"] = "a",
   ["å"] = "a",
   ["Å"] = "a",
   ["ä"] = "a",
@@ -32,8 +39,7 @@ local replacement_map = {
   ["Ą"] = "a",
   ["ā"] = "a",
   ["Ā"] = "a",
-  ["æ"] = "a",
-  ["Æ"] = "a",
+  ["ậ"] = "a",
   ["æ"] = "ae",
   ["Æ"] = "ae",
   ["ᴀ"] = "a",
@@ -55,8 +61,6 @@ local replacement_map = {
   ["Đ"] = "d",
   ["ð"] = "d",
   ["Ð"] = "d",
-  ["ð"] = "e",
-  ["Ð"] = "e",
   ["ᴅ"] = "d",
   ["é"] = "e",
   ["É"] = "e",
@@ -78,6 +82,7 @@ local replacement_map = {
   ["Ē"] = "e",
   ["ᴇ"] = "e",
   ["Ɇ"] = "e",
+  ["ə"] = "e",
   ["ğ"] = "g",
   ["Ğ"] = "g",
   ["ĝ"] = "g",
@@ -92,6 +97,7 @@ local replacement_map = {
   ["ħ"] = "h",
   ["Ħ"] = "h",
   ["Ⱨ"] = "h",
+  ["ʻ"] = "'",
   ["í"] = "i",
   ["Í"] = "i",
   ["ì"] = "i",
@@ -130,12 +136,12 @@ local replacement_map = {
   ["Ŀ"] = "l",
   ["ʟ"] = "l",
   ["ᴍ"] = "m",
+  ["ñ"] = "gni",
+  ["Ñ"] = "gni",
   ["ń"] = "n",
   ["Ń"] = "n",
   ["ň"] = "n",
   ["Ň"] = "n",
-  ["ñ"] = "n",
-  ["Ñ"] = "n",
   ["ņ"] = "n",
   ["Ņ"] = "n",
   ["ɴ"] = "n",
@@ -159,9 +165,9 @@ local replacement_map = {
   ["Ø"] = "o",
   ["ō"] = "o",
   ["Ō"] = "o",
+  ["ờ"] = "o",
+  ["ọ"] = "o",
   ["ǫ"] = "q",
-  ["œ"] = "o",
-  ["Œ"] = "o",
   ["œ"] = "oe",
   ["Œ"] = "oe",
   ["ᴏ"] = "o",
@@ -214,6 +220,9 @@ local replacement_map = {
   ["Ų"] = "u",
   ["ū"] = "u",
   ["Ū"] = "u",
+  ["ủ"] = "u",
+  ["ư"] = "u",
+  ["ữ"] = "u",
   ["ᴜ"] = "u",
   ["Ʉ"] = "u",
   ["ŵ"] = "w",
@@ -245,8 +254,6 @@ local replacement_map = {
   ["В"] = "b",
   ["г"] = "r",
   ["Г"] = "r",
-  ["д"] = "a",
-  ["Д"] = "a",
   ["д"] = "d",
   ["Д"] = "d",
   ["е"] = "e",
@@ -270,8 +277,6 @@ local replacement_map = {
   ["Н"] = "h",
   ["о"] = "o",
   ["О"] = "o",
-  ["п"] = "h",
-  ["П"] = "h",
   ["п"] = "n",
   ["П"] = "n",
   ["р"] = "p",
@@ -312,33 +317,9 @@ local function normalize(str)
   if str and str ~= "" then
     str = str:gsub("[%z\1-\127\194-\244][\128-\191]*",
       function(c) return replacement_map[c] or c
-    end):gsub("[^%a%s%p%d]", "")
+    end):gsub("[^%a%s%'%*%-]", " ")
+        :gsub("[%'%*%-]", "")
   end
   return str
 end
-
 return normalize
-
-------------------------------------------------------------------------------------
--- MIT License                                                                    --
---                                                                                --
--- Copyright © 2026 monk (https://github.com/monk-afk)                            --
---                                                                                --
--- Permission is hereby granted, free of charge, to any person obtaining a copy   --
--- of this software and associated documentation files (the "Software"), to deal  --
--- in the Software without restriction, including without limitation the rights   --
--- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell      --
--- copies of the Software, and to permit persons to whom the Software is          --
--- furnished to do so, subject to the following conditions:                       --
---                                                                                --
--- The above copyright notice and this permission notice shall be included in all --
--- copies or substantial portions of the Software.                                --
---                                                                                --
--- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR     --
--- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,       --
--- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE    --
--- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER         --
--- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,  --
--- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE  --
--- SOFTWARE.                                                                      --
-------------------------------------------------------------------------------------

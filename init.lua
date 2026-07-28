@@ -1,60 +1,42 @@
-local function filterplus(path, logger)
-  -- just incase
-  if not path:match(".*/$") then path = path .. "/" end
+-- FilterPlus
+-- Copyright © 2026 monk (https://github.com/monk-afk)
+-- SPDX-License-Identifier: MIT
+local function filterplusplus(path, logger)
+  if not path:match("[/\\]$") then path = path .. "/" end
 
-  local filtering_path = path .. "filtering/"
-  local wordlists_path = path .. "wordlists/"
-  local utilities_path = path .. "utilities/"
+  local filtering = path .. "filtering/"
+  local wordlists = path .. "wordlists/"
+  local utilities = path .. "utilities/"
 
-  local module_files = {
-    filtering_main = filtering_path .. "filtering_main.lua",
-    triage_closure = filtering_path .. "triage_closure.lua",
-    get_candidates = filtering_path .. "get_candidates.lua",
-
-    frequency_bias   = utilities_path .. "frequency_bias.lua",
-    edit_distance    = utilities_path .. "edit_distance.lua",
-    root_sum_squared = utilities_path .. "root_sum_squared.lua",
-    sanitizer        = utilities_path .. "sanitizer.lua",
-    normalizer       = utilities_path .. "normalizer.lua",
-
-    blacklist = wordlists_path .. "blacklist.lua",
-    whitelist = wordlists_path .. "whitelist.lua",
-    blacklist_mutations = wordlists_path .. "blacklist_mutations.lua",
-    mutation_exceptions = wordlists_path .. "mutation_exceptions.lua",
-    construct_wordlists = wordlists_path .. "construct_wordlists.lua",
-
-    -- enable logging by passing a logging function
-    logger = logger or function() end,
+  local wordlist_files = {
+    blacklist = wordlists .. "blacklist.lua",
+    whitelist = wordlists .. "whitelist.lua",
+    blacklist_patterns = wordlists .. "blacklist_patterns.lua",
+    blacklist_mutations = wordlists .. "blacklist_mutations.lua",
+    mutation_exceptions = wordlists .. "mutation_exceptions.lua",
   }
 
-  local filter = dofile(module_files.filtering_main)(module_files)
+  local normalize = dofile(utilities .. "normalizer.lua")
+  local sanitize = dofile(utilities .. "sanitizer.lua")
 
-  return function(message)
-    return filter(message)
-  end
+  local blacklist, whitelist, blacklist_grams, whitelist_grams =
+    dofile(wordlists .. "construct_wordlists.lua")(wordlist_files, normalize, sanitize)
+
+  local pattern_matching = dofile(filtering .. "pattern_matching.lua")(blacklist, whitelist)
+  local ngram_triage     = dofile(filtering .. "ngram_triage.lua")(blacklist, whitelist)
+  local confidence_score = dofile(filtering .. "confidence_score.lua")(
+      dofile(utilities .. "frequency_bias.lua")(blacklist_grams, whitelist_grams),
+      dofile(utilities .. "edit_distance.lua")
+    )
+
+  return dofile(filtering .. "filter_main.lua")(
+      pattern_matching,
+      ngram_triage,
+      confidence_score,
+      sanitize,
+      normalize,
+      logger or function() end
+    )
 end
 
-return filterplus
-------------------------------------------------------------------------------------
--- MIT License                                                                    --
---                                                                                --
--- Copyright © 2026 monk (https://github.com/monk-afk)                            --
---                                                                                --
--- Permission is hereby granted, free of charge, to any person obtaining a copy   --
--- of this software and associated documentation files (the "Software"), to deal  --
--- in the Software without restriction, including without limitation the rights   --
--- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell      --
--- copies of the Software, and to permit persons to whom the Software is          --
--- furnished to do so, subject to the following conditions:                       --
---                                                                                --
--- The above copyright notice and this permission notice shall be included in all --
--- copies or substantial portions of the Software.                                --
---                                                                                --
--- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR     --
--- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,       --
--- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE    --
--- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER         --
--- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,  --
--- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE  --
--- SOFTWARE.                                                                      --
-------------------------------------------------------------------------------------
+return filterplusplus
